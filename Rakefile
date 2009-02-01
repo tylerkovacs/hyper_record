@@ -7,10 +7,10 @@ begin
   require 'jeweler'
   Jeweler::Tasks.new do |s|
     s.name = "hyper_record"
-    s.summary = %Q{TODO}
+    s.summary = %Q{Fully integrates ActiveRecord with Hypertable.}
     s.email = "tyler.kovacs@gmail.com"
     s.homepage = "http://github.com/tylerkovacs/hyper_record"
-    s.description = "TODO"
+    s.description = "See README"
     s.authors = ["tylerkovacs"]
   end
 rescue LoadError
@@ -32,8 +32,8 @@ Rake::RDocTask.new do |rdoc|
 end
 
 Rcov::RcovTask.new do |t|
-  t.libs << 'test'
-  t.test_files = FileList['test/**/*_test.rb']
+  t.libs << 'spec'
+  t.test_files = FileList['spec/**/*_spec.rb']
   t.verbose = true
 end
 

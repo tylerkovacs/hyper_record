@@ -1,0 +1,1 @@
+require 'hyper_record'
