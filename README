@@ -1,7 +1,42 @@
 hyper_record
 ============
 
-Description goes here.
+Hypertable is a high performance distributed data storage system designed to support applications requiring maximum performance, scalability, and reliability. Modeled after Google's well known Bigtable project, Hypertable is designed to manage the storage and processing of information on a large cluster of commodity servers, providing resilience to machine and component failures.
+
+HyperRecord exists to integrate Hypertable with ActiveRecord (the Ruby on Rails ORM) allowing objects to be stored in Hypertable while maintaining as many of the built-in ORM features as possible.
+
+See:
+- http://www.hypertable.org
+- http://code.google.com/p/hypertable/wiki/HyperRecord
+
+INSTALLATION
+============
+
+1. Install Thrift gem. See UsingThriftClientWithRuby
+2. Add github as a gem source (if you haven't already)
+
+  gem sources -a http://gems.github.com
+
+3. Install hypertable_adapter gem
+
+  gem install tylerkovacs-hypertable_adapter
+
+4. Configure Hypertable Adapter by adding an entry to config/database.yml that points to an instance of the Hypertable Thrift Broker (uses port 38080 by default).
+
+   hypertable:
+     adapter: hypertable
+     host: localhost
+     port: 38080
+
+5. Install HyperRecord gem
+
+  gem install tylerkovacs-hyper_record
+
+6. Add the following to the bottom of config/environment.rb:
+
+  require 'hypertable/thrift_client'
+  require 'active_record/connection_adapters/hypertable_adapter'
+  require 'hyper_record'
 
 COPYRIGHT
 =========
