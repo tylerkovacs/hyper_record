@@ -157,7 +157,7 @@ module ActiveRecord
       end
 
       def find_by_options(options)
-        options[:table_name] ||= quoted_table_name
+        options[:table_name] ||= table_name
         options[:columns] ||= columns
 
         # Don't request the ROW key explicitly, it always comes back
