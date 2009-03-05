@@ -1,0 +1,5 @@
+0.1.1
+- bugfix: don't use quoted table name in find_by_options
+
+0.1.0
+- initial release with basic ActiveRecord and association features
