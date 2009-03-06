@@ -1,7 +1,9 @@
-require 'associations/hyper_has_many_association_extension'
-require 'associations/hyper_has_and_belongs_to_many_association_extension'
+require File.dirname(__FILE__) + '/hypertable/thrift_client'
+require File.dirname(__FILE__) + '/active_record/connection_adapters/hypertable_adapter'
+require File.dirname(__FILE__) + '/associations/hyper_has_many_association_extension'
+require File.dirname(__FILE__) + '/associations/hyper_has_and_belongs_to_many_association_extension'
 
-module ActiveRecord 
+module ActiveRecord
   class Base
     def self.inherited(child) #:nodoc:
       return if child == ActiveRecord::HyperBase
@@ -40,7 +42,7 @@ module ActiveRecord
           when :has_and_belongs_to_many
             # remove all the association cells from the associated objects
             cells_to_delete = []
- 
+
             for row_key in self.send(self.class.reflections[reflection_key].association_foreign_key).keys
               cells_to_delete << [row_key, self.class.connection.qualified_column_name(self.class.reflections[reflection_key].primary_key_name, self.ROW)]
             end
@@ -71,14 +73,14 @@ module ActiveRecord
       increment!(attribute, -by)
     end
 
-    # Returns a copy of the attributes hash where all the values have been 
+    # Returns a copy of the attributes hash where all the values have been
     # safely quoted for insertion.  Translated qualified columns from a Hash
     # value in Ruby to a flat list of attributes.
     def attributes_with_quotes(include_primary_key = true, include_readonly_attributes = true)
       quoted = attributes.inject({}) do |quoted, (name, value)|
         if column = column_for_attribute(name)
           if column.is_a?(ConnectionAdapters::QualifiedColumn) and value.is_a?(Hash)
-            value.keys.each{|k| 
+            value.keys.each{|k|
               quoted[self.class.connection.qualified_column_name(column.name, k)] = quote_value(value[k], column)
             }
           else
@@ -93,7 +95,7 @@ module ActiveRecord
     def quoted_attributes_to_cells(quoted_attrs, table=self.class.table_name)
       cells = []
       pk = self.attributes[self.class.primary_key]
-      quoted_attrs.keys.each{|key| 
+      quoted_attrs.keys.each{|key|
         cells << [pk, connection.hypertable_column_name(key, table), quoted_attrs[key].to_s]
       }
       cells
@@ -109,13 +111,13 @@ module ActiveRecord
     end
 
     # Delete an array of cells from Hypertable
-    # cells is an array of cell keys [["row", "column"], ...] 
+    # cells is an array of cell keys [["row", "column"], ...]
     def delete_cells(cells, table=self.class.table_name)
       connection.delete_cells(table, cells)
     end
 
     # Delete an array of rows from Hypertable
-    # rows is an array of row keys ["row1", "row2", ...] 
+    # rows is an array of row keys ["row1", "row2", ...]
     def delete_rows(row_keys, table=self.class.table_name)
       connection.delete_rows(table, cells)
     end
@@ -254,7 +256,7 @@ module ActiveRecord
         unless @columns
           @columns = connection.columns(table_name, "#{name} Columns")
           @qualified_columns ||= []
-          @qualified_columns.each{|qc| 
+          @qualified_columns.each{|qc|
             # Remove the column family from the column list
             @columns = @columns.reject{|c| c.name == qc[:column_name].to_s}
             connection.remove_column_from_name_map(table_name, qc[:column_name].to_s)

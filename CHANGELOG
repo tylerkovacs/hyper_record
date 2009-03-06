@@ -1,5 +1,12 @@
-0.1.1
-- bugfix: don't use quoted table name in find_by_options
+0.2.0 on 2009/03/05
+- bundle hypertable_adapter and hypertable_thrift_client code to
+  simplify installation
+- support for simple migrations in raw HQL or ActiveRecord::Migration format
+- attempt to reconnect to ThirftBroker on connection errors
+- intercept Thrift exceptions to make them compatible with Rails
 
-0.1.0
+0.1.1 on 2009/03/03
+- don't use quoted table name in find_by_options
+
+0.1.0 on 2009/02/01
 - initial release with basic ActiveRecord and association features
