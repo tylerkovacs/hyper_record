@@ -172,7 +172,8 @@ module ActiveRecord
 
         rows.values.map{|row|
           row_with_mapped_column_names = {
-            'ROW' => row.first.row_key
+            'ROW' => row.first.row_key,
+            'timestamp' => Time.at(row.first.timestamp / 1_000_000_000.0)
           }
 
           for cell in row

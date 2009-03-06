@@ -406,6 +406,7 @@ module ActiveRecord
         cell.column_family = column_family
         cell.column_qualifier = column_qualifier if column_qualifier
         cell.value = array[2] if array[2]
+        cell.timestamp = array[3] if array[3]
         cell
       end
 
@@ -445,9 +446,12 @@ module ActiveRecord
 
       def insert_fixture(fixture, table_name)
         fixture_hash = fixture.to_hash
+        timestamp = fixture_hash.delete('timestamp')
         row_key = fixture_hash.delete('ROW')
         cells = []
-        fixture_hash.keys.each{|k| cells << [row_key, k, fixture_hash[k]]}
+        fixture_hash.keys.each do |k|
+          cells << [row_key, k, fixture_hash[k], timestamp]
+        end
         write_cells(table_name, cells)
       end
 

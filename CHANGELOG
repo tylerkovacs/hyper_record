@@ -1,3 +1,5 @@
+0.2.1 on 2009/03/06 [kball]
+- add rudimentary support for timestamps
 0.2.0 on 2009/03/05
 - bundle hypertable_adapter and hypertable_thrift_client code to
   simplify installation
