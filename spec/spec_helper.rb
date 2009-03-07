@@ -1,4 +1,5 @@
 ENV["RAILS_ENV"] = "test"
+require File.expand_path(File.join(File.dirname(__FILE__), "../../../../config/environment"))
 require 'spec'
 require 'spec/rails'
 
@@ -118,7 +119,7 @@ class Fixtures
             end
           end
 
-          cache_fixtures(connection, fixtures)
+          cache_fixtures(connection, fixtures_map)
         end
       end
     end
