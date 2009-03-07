@@ -196,7 +196,7 @@ module ActiveRecord
               scan_spec.revs = options[key]
             when :return_deletes
               scan_spec.return_deletes = options[key]
-            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include
+            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly
               # ignore
             else
               raise "Unrecognized scan spec option: #{key}"
