@@ -48,11 +48,9 @@ module ActiveRecord
       end
 
       def default
-        # Unlike regular AR objects, the default value for a column must
-        # be cloned.  This is to avoid copy-by-reference issues with {}
-        # objects.  Without clone, all instances of the class will share
-        # a reference to the same object.
-        @default.clone
+        h = Hash.new
+        h.default = @default
+        h
       end
     end
   end
