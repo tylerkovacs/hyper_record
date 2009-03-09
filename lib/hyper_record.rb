@@ -167,23 +167,23 @@ module ActiveRecord
 
         rows = Hash.new{|h,k| h[k] = []}
         for cell in connection.execute_with_options(options)
-          rows[cell.row_key] << cell
+          rows[cell['row_key']] << cell
         end
 
         rows.values.map{|row|
           row_with_mapped_column_names = {
-            'ROW' => row.first.row_key,
-            'timestamp' => Time.at(row.first.timestamp / 1_000_000_000.0)
+            'ROW' => row.first['row_key'],
+            'timestamp' => Time.at(row.first['timestamp'] / 1_000_000_000.0)
           }
 
           for cell in row
-            if cell.column_qualifier
-              family = connection.rubify_column_name(cell.column_family)
+            if cell['column_qualifier']
+              family = connection.rubify_column_name(cell['column_family'])
               row_with_mapped_column_names[family] ||= {}
-              row_with_mapped_column_names[family][cell.column_qualifier] = cell.value
+              row_with_mapped_column_names[family][cell['column_qualifier']] = cell['value']
             else
-              family = connection.rubify_column_name(cell.column_family)
-              row_with_mapped_column_names[family] = cell.value
+              family = connection.rubify_column_name(cell['column_family'])
+              row_with_mapped_column_names[family] = cell['value']
             end
           end
 
