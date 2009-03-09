@@ -17,7 +17,12 @@ module ActiveRecord
       require_hypertable_thrift_client
 
       raise "Hypertable/ThriftClient config missing :host" if !config[:host]
-      connection = Hypertable::ThriftClient.new(config[:host], config[:port])
+
+      host = config[:host] || 'localhost'
+      port = config[:port] || 38088
+      timeout_ms = config[:timeout] || 20000
+
+      connection = Hypertable::ThriftClient.new(host, port, timeout_ms)
 
       ConnectionAdapters::HypertableAdapter.new(connection, logger, config)
     end
