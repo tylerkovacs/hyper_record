@@ -197,7 +197,11 @@ module ActiveRecord
       clear_association_cache
       pk = self.attributes[self.class.primary_key]
       @attributes.clear
-      self.class.find(pk, options).instance_variable_get('@attributes').each_pair{|key, value| @attributes[key] = value}
+      attrs = self.class.find(pk, options).instance_variable_get('@attributes')
+      attrs.each_pair{|key, value|
+        @attributes[key] = value
+        @attributes[key].model = self if @attributes[key].is_a?(QualifiedColumnAttributeHandler)
+      }
       @attributes_cache = {}
       self
     end

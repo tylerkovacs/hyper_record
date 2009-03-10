@@ -658,6 +658,27 @@ module ActiveRecord
           attrs['misc2'].class.should == ActiveRecord::QualifiedColumnAttributeHandler
         end
       end
+
+      describe '.attributes_from_column_definition' do
+        fixtures :pages, :qualified_pages
+
+        it "should accept hash assignment to qualified columns" do
+          qp = QualifiedPage.new
+          qp.ROW = 'new_page'
+          qp.new_record?.should be_true
+          value = {'name' => 'new page', 'url' => 'new.com'}
+          qp.misc = value
+          qp.misc.should == value
+          qp.save.should be_true
+          qp.reload
+          qp.misc.should == value
+          qp.misc['another_key'] = "1"
+          qp.misc.should == value.merge({'another_key' => "1"})
+          qp.save.should be_true
+          qp.reload
+          qp.misc.should == value.merge({'another_key' => "1"})
+        end
+      end
     end
   end
 end
