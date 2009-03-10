@@ -120,6 +120,7 @@ module ActiveRecord
         @b.author_id.should == {@a1.ROW => 1}
         @a1.destroy
         @b.reload
+        @b.authors.should be_empty
         @b.author_id.should == {}
       end
     end

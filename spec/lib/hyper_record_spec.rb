@@ -112,6 +112,73 @@ module ActiveRecord
     describe HyperBase, '.find' do
       fixtures :pages, :qualified_pages
 
+      it "should add raw cell data to raw_cells instance variable" do
+        p = Page.find(:first)
+        p.attributes.should_not be_empty
+        p.attributes.keys.sort.should == ['ROW', 'name', 'url']
+        p.name.should == p.raw_cells['name'].first['value']
+      end
+
+      it "should show raw_attributes on scalar columns" do
+        p = Page.find(:first)
+        p.name.should == 'LOLcats and more'
+        raw = p.raw_attribute('name')
+        raw['value'].should == p.name
+        raw['timestamp'].should_not be_nil
+        raw['revision'].should_not be_nil
+        raw['flag'].should_not be_nil
+        raw['column_family'].should == 'name'
+        raw['column_qualifier'].should be_nil
+      end
+
+      it "should show raw_attributes on qualified columns" do
+        qp = QualifiedPage.new
+        qp.new_record?.should be_true
+        qp.misc['name'] = 'new page'
+        qp.misc['url']= 'new.com'
+        qp.ROW = 'new_qualified_page'
+        qp.save.should be_true
+        qp.reload
+
+        qp.raw_attribute('misc').should be_nil
+        raw = qp.raw_attribute('misc:url')
+        raw['value'].should == 'new.com'
+        raw['timestamp'].should_not be_nil
+        raw['revision'].should_not be_nil
+        raw['flag'].should_not be_nil
+        raw['column_family'].should == 'misc'
+        raw['column_qualifier'].should == 'url'
+      end
+
+      it "should allow timestamp to be changed through raw_attributes" do
+        p = Page.find(:first)
+        raw = p.raw_attribute('name')
+        old_timestamp = raw['timestamp']
+        new_timestamp = old_timestamp + 1000
+        raw['timestamp'] = new_timestamp
+        p.raw_attribute('name')['timestamp'].should == new_timestamp
+        p.save.should be_true
+        p.reload
+        p.raw_attribute('name')['timestamp'].should == new_timestamp
+      end
+
+      it "should not allow revision to be changed through raw_attributes" do
+        p = Page.find(:first)
+        raw = p.raw_attribute('name')
+        old_revision = raw['revision']
+        new_revision = old_revision + 1000
+        raw['revision'] = new_revision
+        p.raw_attribute('name')['revision'].should == new_revision
+        p.save.should be_true
+        p.reload
+        p.raw_attribute('name')['revision'].should == old_revision
+      end
+
+      it "should return nil on raw_attributes on non-existent columns" do
+        p = Page.find(:first)
+        p.raw_attribute('non-existent').should be_nil
+      end
+
       it "should return the declared list of qualified columns by default" do
         qp = QualifiedPage.new
         qp.new_record?.should be_true
@@ -125,7 +192,8 @@ module ActiveRecord
       end
 
       it "should support the limit option" do
-        Page.new({:ROW => 'row key'}).save.should be_true
+        p = Page.new({:ROW => 'row key', :name => 'new entry'})
+        p.save.should be_true
         Page.find(:all).length.should == 3
         pages = Page.find(:all, :limit => 2)
         pages.length.should == 2
@@ -179,7 +247,7 @@ module ActiveRecord
         qpweq = QualifiedPageWithoutExplicitQualifiers.new
         qpweq.new_record?.should be_true
         qpweq.misc['name'] = 'new page'
-        qpweq.misc['url']= 'new.com'
+        qpweq.misc['url'] = 'new.com'
         qpweq.ROW = 'new_qualified_page'
         qpweq.save.should be_true
 
@@ -197,7 +265,7 @@ module ActiveRecord
         qp = QualifiedPage.new
         qp.new_record?.should be_true
         qp.ROW = 'new_qualified_page'
-        qp.misc2 = 'test'
+        qp.misc2['name'] = 'test'
         qp.save.should be_true
 
         qp = QualifiedPage.find(:first)
@@ -532,6 +600,63 @@ module ActiveRecord
         p.reload
         p.name.should == 'new name value'
         p.url.should == 'http://new/'
+      end
+    end
+
+    describe HyperBase, '.attributes' do
+      fixtures :pages
+
+      describe '.attributes_with_quotes' do
+        it "should return attributes in expected format" do
+          p = Page.find(:first)
+          attrs = p.attributes_with_quotes
+          attrs.keys.sort.should == ["name", "url"]
+          name_attrs = attrs['name'].first
+          name_attrs[0].should == "page_1"
+          name_attrs[1].should == "name"
+          name_attrs[2].should == "LOLcats and more"
+          name_attrs[3].should_not be_nil
+          name_attrs[4].should_not be_nil
+          name_attrs[5].should == 255
+        end
+      end
+
+      describe '.quoted_attributes_to_cells' do
+        it "should return attributes in expected format" do
+          p = Page.find(:first)
+          attrs = p.attributes_with_quotes
+          cells = p.quoted_attributes_to_cells(attrs)
+          cells.first[0].should == 'page_1'
+          cells.first[1].should == 'name'
+          cells.first[2].should == 'LOLcats and more'
+          cells.first[3].should_not be_nil
+          cells.first[4].should_not be_nil
+          cells.first[5].should == 255
+        end
+      end
+
+      describe '.attributes_from_column_definition' do
+        fixtures :pages, :qualified_pages
+
+        it "should return attributes in expected format for scalar columns" do
+          p = Page.find(:first)
+          attrs = p.attributes_from_column_definition
+          attrs.should == {"name"=>"", "url"=>""}
+        end
+
+        it "should return attributes in expected format for qualified columns" do
+          qp = QualifiedPage.new
+          qp.new_record?.should be_true
+          qp.misc['name'] = 'new page'
+          qp.misc['url']= 'new.com'
+          qp.ROW = 'new_qualified_page'
+          qp.save.should be_true
+          qp.reload
+          attrs = qp.attributes_from_column_definition
+          attrs.should == {"misc"=>{}, "misc2"=>{}}
+          attrs['misc'].class.should == ActiveRecord::QualifiedColumnAttributeHandler
+          attrs['misc2'].class.should == ActiveRecord::QualifiedColumnAttributeHandler
+        end
       end
     end
   end

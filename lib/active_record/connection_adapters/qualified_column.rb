@@ -46,12 +46,6 @@ module ActiveRecord
       def klass
         Hash
       end
-
-      def default
-        h = Hash.new
-        h.default = @default
-        h
-      end
     end
   end
 end
