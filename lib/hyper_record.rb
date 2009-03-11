@@ -18,6 +18,7 @@ module ActiveRecord
 
   class HyperBase < Base
     include ActiveRecord::HyperAttributeMethods
+    cattr_accessor :log_calls
 
     # All records must include a ROW key
     validates_presence_of :ROW
@@ -125,7 +126,7 @@ module ActiveRecord
 
     # Write an array of cells to Hypertable
     def write_cells(cells, table=self.class.table_name)
-      if ENV['RAILS_ENV'] != 'production'
+      if HyperBase.log_calls
         msg = [
           "Writing #{cells.length} cells to #{table} table",
           cells.map{|c| [
@@ -141,7 +142,7 @@ module ActiveRecord
     # Delete an array of cells from Hypertable
     # cells is an array of cell keys [["row", "column"], ...]
     def delete_cells(cells, table=self.class.table_name)
-      if ENV['RAILS_ENV'] != 'production'
+      if HyperBase.log_calls
         msg = [
           "Deleting #{cells.length} cells from #{table} table",
           cells.map{|c| [
@@ -257,7 +258,7 @@ module ActiveRecord
           cell_count += 1
         end
 
-        if ENV['RAILS_ENV'] != 'production'
+        if HyperBase.log_calls
           msg = [ "Select" ]
           for key in options.keys
             case key
