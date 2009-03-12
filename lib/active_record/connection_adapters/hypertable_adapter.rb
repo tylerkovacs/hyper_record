@@ -135,21 +135,9 @@ module ActiveRecord
         }
         @@read_latency += Time.now - t1
 
-        # Return cells in hash-normalized form.  Always include a fake
-        # entry for ROW to ensure that @attributes has an entry for ROW.
-        normalized_cells = cells.map{|c| normalize_cell(c)}
-        if !normalized_cells.empty?
-          normalized_cells << {
-            'row_key' => normalized_cells.first['row_key'],
-            'column_family' => 'ROW',
-            'value' => normalized_cells.first['row_key'],
-            'new' => false
-          }
-        end
-        normalized_cells
+        cells.map{|c| normalize_cell(c)}
       end
 
-      # Hash-normalized form for a cell
       def normalize_cell(cell)
         {
           'row_key' => cell.row_key,
@@ -158,8 +146,7 @@ module ActiveRecord
           'value' => cell.value,
           'flag' => cell.flag,
           'timestamp' => cell.timestamp,
-          'revision' => cell.revision,
-          'new' => false
+          'revision' => cell.revision
         }
       end
 
@@ -298,7 +285,7 @@ module ActiveRecord
       def is_qualified_column_name?(column_name)
         column_family, qualifier = column_name.split(':', 2)
         if qualifier
-          [true, column_family, qualifier]
+          [true, column_family, qualifier] 
         else
           [false, nil, nil]
         end
@@ -428,32 +415,16 @@ module ActiveRecord
         }
       end
 
-      # Cell passed in as:
-      # => [row_key, column_name, value, timestamp, revision, flag]
-      # where column_name can be column_family:column_qualifier
+      # Cell passed in as [row_key, column_name, value]
       def cell_from_array(array)
         cell = Hypertable::ThriftGen::Cell.new
         cell.row_key = array[0]
         column_family, column_qualifier = array[1].split(':')
         cell.column_family = column_family
         cell.column_qualifier = column_qualifier if column_qualifier
-        cell.value = array[2].to_s if array[2]
+        cell.value = array[2] if array[2]
         cell.timestamp = array[3] if array[3]
-        cell.revision = array[4] if array[4]
-        cell.flag = array[5] if array[5]
         cell
-      end
-
-      # Convert hash-normalized form to array-normalized form.
-      def cell_hash_to_array(row_key, hash)
-        [
-          row_key,
-          qualified_column_name(hash['column_family'],hash['column_qualifier']),
-          hash['value'],
-          hash['timestamp'],
-          hash['revision'],
-          hash['flag']
-        ]
       end
 
       def delete_cells(table_name, cells)
