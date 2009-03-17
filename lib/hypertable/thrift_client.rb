@@ -24,11 +24,6 @@ module Hypertable
       @transport.close() if @do_close
     end
 
-    # buffered query
-    def hql_query(hql)
-      hql_exec(hql, false, false);
-    end
-
     # more convenience methods
 
     def with_scanner(table, scan_spec)
