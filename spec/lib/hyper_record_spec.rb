@@ -191,7 +191,7 @@ module ActiveRecord
         # qpweq2.misc2.should == ""
         # For now, it returns all columns
         qpweq2.misc.should == {"name"=>"new page", "url"=>"new.com"}
-        qpweq2.misc2.should be_nil
+        qpweq2.misc2.should == ""
       end
 
       it "should instantiate the object with empty hashes for qualified columns when no explicit select list is supplied" do

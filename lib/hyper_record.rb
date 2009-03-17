@@ -22,6 +22,12 @@ module ActiveRecord
 
     BILLION = 1_000_000_000.0
 
+    ROW_KEY_OFFSET = 0
+    COLUMN_FAMILY_OFFSET = 1
+    COLUMN_QUALIFIER_OFFSET = 2
+    VALUE_OFFSET = 3
+    TIMESTAMP_OFFSET = 4
+
     def initialize(attrs={})
       super(attrs)
       self.ROW = attrs[:ROW] if attrs[:ROW] && attrs[:ROW]
@@ -198,8 +204,11 @@ module ActiveRecord
         options[:select] ||= qualified_column_names_without_row_key.map{|c| connection.hypertable_column_name(c, table_name)}
 
         rows = Hash.new{|h,k| h[k] = []}
+
+        # Cells come back in native array format.
+        # [ row_key, column_family, column_qualifier, value, timestamp ]
         for cell in connection.execute_with_options(options)
-          rows[cell['row_key']] << cell
+          rows[cell[ROW_KEY_OFFSET]] << cell
         end
 
         if HyperBase.log_calls
@@ -220,17 +229,17 @@ module ActiveRecord
 
         rows.values.map{|row|
           row_with_mapped_column_names = {
-            'ROW' => row.first['row_key']
+            'ROW' => row.first[ROW_KEY_OFFSET]
           }
 
           for cell in row
-            if cell['column_qualifier']
-              family = connection.rubify_column_name(cell['column_family'])
+            family = connection.rubify_column_name(cell[COLUMN_FAMILY_OFFSET])
+
+            if !cell[COLUMN_QUALIFIER_OFFSET].blank?
               row_with_mapped_column_names[family] ||= {}
-              row_with_mapped_column_names[family][cell['column_qualifier']] = cell['value']
+              row_with_mapped_column_names[family][cell[COLUMN_QUALIFIER_OFFSET]] = cell[VALUE_OFFSET]
             else
-              family = connection.rubify_column_name(cell['column_family'])
-              row_with_mapped_column_names[family] = cell['value']
+              row_with_mapped_column_names[family] = cell[VALUE_OFFSET]
             end
           end
 
