@@ -32,7 +32,8 @@ module ActiveRecord
     class HypertableAdapter < AbstractAdapter
       @@read_latency = 0.0
       @@write_latency = 0.0
-      cattr_accessor :read_latency, :write_latency
+      @@cells_read = 0
+      cattr_accessor :read_latency, :write_latency, :cells_read
 
       def initialize(connection, logger, config)
         super(connection, logger)
@@ -43,10 +44,11 @@ module ActiveRecord
       def self.reset_timing
         @@read_latency = 0.0
         @@write_latency = 0.0
+        @@cells_read = 0
       end
 
       def self.get_timing
-        [@@read_latency, @@write_latency]
+        [@@read_latency, @@write_latency, @@cells_read]
       end
 
       def convert_select_columns_to_array_of_columns(s, columns=nil)
@@ -141,7 +143,10 @@ module ActiveRecord
         cells = retry_on_connection_error {
           @connection.get_cells_as_arrays(table_name, scan_spec)
         }
+
+        # Capture performance metrics
         @@read_latency += Time.now - t1
+        @@cells_read += cells.length
 
         cells
       end
