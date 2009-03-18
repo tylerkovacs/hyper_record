@@ -1,3 +1,9 @@
+0.2.2 on 2009/03/06 [tyler.kovacs]
+- monkey patch Thrift::FramedTransport to fix performance issue in thrift
+  transport ruby code (1000x faster than default implementation)
+- import and utilize new thrift client moethods that implement native
+  array interface for cell retrieval (100x faster than creating
+  Hypertable::ThriftGen::Cell objects)
 0.2.1 on 2009/03/06 [kball]
 - add rudimentary support for timestamps
 0.2.0 on 2009/03/05
