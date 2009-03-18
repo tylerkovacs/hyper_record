@@ -38,7 +38,7 @@ module Thrift
       # there isn't any more coming, so if it's not enough, it's an error.
       raise EOFError if requested_length > (@rbuf.length - @rpos)
 
-      @rbuf
+      @rbuf[@rpos, requested_length]
     end
 
     def consume!(size)
