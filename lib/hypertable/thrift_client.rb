@@ -4,6 +4,7 @@ $:.push(File.dirname(__FILE__) + '/gen-rb')
 require 'thrift'
 require 'thrift/protocol/binaryprotocolaccelerated'
 require 'HqlService'
+require File.dirname(__FILE__) + '/thrift_transport_monkey_patch'
 
 module Hypertable
   class ThriftClient < ThriftGen::HqlService::Client
