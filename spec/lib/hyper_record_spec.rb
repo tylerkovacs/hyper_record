@@ -176,22 +176,33 @@ module ActiveRecord
         qp.misc.keys.sort.should == ['name', 'url']
       end
 
-      it "should return an empty hash for all qualified columns even if none are explicitly listed in qualifiers" do
-        qpweq = QualifiedPageWithoutExplicitQualifiers.new
-        qpweq.new_record?.should be_true
-        qpweq.misc['name'] = 'new page'
-        qpweq.misc['url'] = 'new.com'
-        qpweq.ROW = 'new_qualified_page'
-        qpweq.save.should be_true
+      describe ':select option' do
+        before(:each) do
+          @qpweq = QualifiedPageWithoutExplicitQualifiers.new
+          @qpweq.new_record?.should be_true
+          @qpweq.misc['name'] = 'new page'
+          @qpweq.misc['url'] = 'new.com'
+          @qpweq.ROW = 'new_qualified_page'
+          @qpweq.save.should be_true
+        end
 
-        qpweq2 = QualifiedPageWithoutExplicitQualifiers.find(qpweq.ROW)
-        # NOTE: will be supported in the future when Hypertable supports
-        # efficient lookup on arbitrary columns
-        # qpweq2.misc.should == {}
-        # qpweq2.misc2.should == ""
-        # For now, it returns all columns
-        qpweq2.misc.should == {"name"=>"new page", "url"=>"new.com"}
-        qpweq2.misc2.should == ""
+        it "should return an empty hash for all qualified columns even if none are explicitly listed in qualifiers" do
+          @qpweq2 = QualifiedPageWithoutExplicitQualifiers.find(@qpweq.ROW)
+          @qpweq2.misc.should == {}
+          @qpweq2.misc2.should == ""
+        end
+
+        it "should return correct values for qualified columns named in select list using comma separated string" do
+          qpweq2 = QualifiedPageWithoutExplicitQualifiers.find(@qpweq.ROW, :select => "misc,misc2")
+          qpweq2.misc.should == {"name"=>"new page", "url"=>"new.com"}
+          qpweq2.misc2.should == ""
+        end
+
+        it "should return correct values for qualified columns named in select list using array" do
+          qpweq2 = QualifiedPageWithoutExplicitQualifiers.find(@qpweq.ROW, :select => ["misc", "misc2"])
+          qpweq2.misc.should == {"name"=>"new page", "url"=>"new.com"}
+          qpweq2.misc2.should == ""
+        end
       end
 
       it "should instantiate the object with empty hashes for qualified columns when no explicit select list is supplied" do

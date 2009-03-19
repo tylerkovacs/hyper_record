@@ -1,3 +1,6 @@
+0.2.4 (not yet released)
+- support :select option in ActiveRecord.find
+
 0.2.3 on 2009/03/18 [tyler.kovacs]
 - optimize writes by using set_cells_as_arrays to write data in cell native
   array form

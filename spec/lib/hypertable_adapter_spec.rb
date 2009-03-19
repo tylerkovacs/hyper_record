@@ -83,7 +83,7 @@ module ActiveRecord
         it "should return false for regular columns" do
           status, family, qualifier = @h.is_qualified_column_name?("col1")
           status.should be_false
-          family.should be_nil
+          family.should == 'col1'
           qualifier.should be_nil
         end
 

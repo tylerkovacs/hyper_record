@@ -214,6 +214,14 @@ module ActiveRecord
               scan_spec.revs = options[key]
             when :return_deletes
               scan_spec.return_deletes = options[key]
+            when :select
+              # Columns listed here can be column families only (not
+              # column qualifiers) at this time.
+              requested_columns = options[key].is_a?(String) ? options[key].split(',').map{|s| s.strip} : options[key]
+              scan_spec.columns = requested_columns.map do |column|
+                status, family, qualifier = is_qualified_column_name?(column)
+                family
+              end.uniq
             when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly
               # ignore
             else
@@ -286,9 +294,9 @@ module ActiveRecord
       def is_qualified_column_name?(column_name)
         column_family, qualifier = column_name.split(':', 2)
         if qualifier
-          [true, column_family, qualifier] 
+          [true, column_family, qualifier]
         else
-          [false, nil, nil]
+          [false, column_name, nil]
         end
       end
 
