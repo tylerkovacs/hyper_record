@@ -54,7 +54,7 @@ module ActiveRecord
             cells_to_delete = []
 
             for row_key in self.send(self.class.reflections[reflection_key].association_foreign_key).keys
-              cells_to_delete << [row_key, self.class.connection.qualified_column_name(self.class.reflections[reflection_key].primary_key_name, self.ROW)]
+              cells_to_delete << connection.cell_native_array(row_key, self.class.reflections[reflection_key].primary_key_name, self.ROW)
             end
 
             self.delete_cells(cells_to_delete, self.class.reflections[reflection_key].klass.table_name)
@@ -111,12 +111,15 @@ module ActiveRecord
     # Translates the output of attributes_with_quotes into an array of
     # cells suitable for writing into Hypertable (through the write_cells
     # method).  Data format is native array format for cells.
-    # => [["page_1", "name", "LOLcats and more"], ["page_1", "url", "http://www.icanhascheezburger.com"]]
+    # [
+    #   ["row_key", "column_family", "column_qualifier", "value"],
+    # ]
     def quoted_attributes_to_cells(quoted_attrs, table=self.class.table_name)
       cells = []
       pk = self.attributes[self.class.primary_key]
       quoted_attrs.keys.each{|key|
-        cells << [pk, connection.hypertable_column_name(key, table), quoted_attrs[key].to_s]
+        name, qualifier = connection.hypertable_column_name(key, table).split(':', 2)
+        cells << connection.cell_native_array(pk, name, qualifier, quoted_attrs[key])
       }
       cells
     end
@@ -130,7 +133,7 @@ module ActiveRecord
       if HyperBase.log_calls
         msg = [
           "Writing #{cells.length} cells to #{table} table",
-          cells.map{|c| [ c[0], c[1], c[2].to_s.first(20) ].compact.join("\t")}
+          cells.map{|c| [c[0], c[1], c[2], c[3].to_s.first(20)].compact.join("\t")}
         ].join("\n")
         RAILS_DEFAULT_LOGGER.info(msg)
         # puts msg

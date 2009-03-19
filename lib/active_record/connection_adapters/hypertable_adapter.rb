@@ -410,8 +410,7 @@ module ActiveRecord
         retry_on_connection_error {
           @connection.with_mutator(table_name) do |mutator|
             t1 = Time.now
-            @connection.set_cells_as_arrays(mutator,
-              cells.map{|c| cell_array_from_array(c)})
+            @connection.set_cells_as_arrays(mutator, cells)
             @@write_latency += Time.now - t1
           end
         }
@@ -420,29 +419,24 @@ module ActiveRecord
       # Cell passed in as [row_key, column_name, value]
       # return a Hypertable::ThriftGen::Cell object which is required
       # if the cell requires a flag on write (delete operations)
-      def cell_from_array(array)
+      def thrift_cell_from_native_array(array)
         cell = Hypertable::ThriftGen::Cell.new
         cell.row_key = array[0]
-        column_family, column_qualifier = array[1].split(':')
-        cell.column_family = column_family
-        cell.column_qualifier = column_qualifier if column_qualifier
-        cell.value = array[2] if array[2]
-        cell.timestamp = array[3] if array[3]
+        cell.column_family = array[1]
+        cell.column_qualifier = array[2] if !array[2].blank?
+        cell.value = array[3] if array[3]
+        cell.timestamp = array[4] if array[4]
         cell
       end
 
-      # Cell passed in as [row_key, column_name, value]
-      # return a more efficient native array representation of the cell
-      # for use in set_cells_as_arrays (cannot be used when setting a
-      # flag on the cell during write).
-      def cell_array_from_array(array)
-        column_family, column_qualifier = array[1].split(':', 2)
+      # Create native array format for cell.
+      # ["row_key", "column_family", "column_qualifier", "value"],
+      def cell_native_array(row_key, column_family, column_qualifier, value=nil, timestamp=nil)
         [
-          array[0].to_s,
+          row_key.to_s,
           column_family.to_s,
           column_qualifier.to_s,
-          array[2].to_s,
-          array[3].to_s
+          value.to_s
         ]
       end
 
@@ -451,11 +445,12 @@ module ActiveRecord
 
         retry_on_connection_error {
           @connection.with_mutator(table_name) do |mutator|
-            @connection.set_cells(mutator, cells.map{|c|
-              cell = cell_from_array(c)
+            thrift_cells = cells.map{|c|
+              cell = thrift_cell_from_native_array(c)
               cell.flag = Hypertable::ThriftGen::CellFlag::DELETE_CELL
               cell
-            })
+            }
+            @connection.set_cells(mutator, thrift_cells)
           end
         }
 
@@ -486,7 +481,8 @@ module ActiveRecord
         row_key = fixture_hash.delete('ROW')
         cells = []
         fixture_hash.keys.each do |k|
-          cells << [row_key, k, fixture_hash[k], timestamp]
+          column_name, column_family = k.split(':', 2)
+          cells << cell_native_array(row_key, column_name, column_family, fixture_hash[k], timestamp)
         end
         write_cells(table_name, cells)
       end

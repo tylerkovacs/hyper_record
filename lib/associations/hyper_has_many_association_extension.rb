@@ -30,7 +30,12 @@ module ActiveRecord
         if @reflection.klass <= ActiveRecord::HyperBase
           raise "missing ROW key on record" if record.ROW.blank?
           @owner.send(@reflection.association_foreign_key)[record.ROW] = 1
-          @owner.write_cells([ [@owner.ROW, record.connection.qualified_column_name(@reflection.association_foreign_key, record.ROW), "1"] ])
+          @owner.write_cells([@owner.connection.cell_native_array(
+            @owner.ROW,
+            @reflection.association_foreign_key,
+            record.ROW,
+            "1"
+          )])
           record.send("#{@reflection.primary_key_name}=", @owner.ROW)
           record.save
           self.reset
@@ -48,7 +53,11 @@ module ActiveRecord
             r.save
 
             # make list of cells that need to be removed from hypertable
-            cells_to_delete << [@owner.ROW, @owner.connection.qualified_column_name(@reflection.association_foreign_key, r.ROW)]
+            cells_to_delete << @owner.connection.cell_native_array(
+              @owner.ROW,
+              @reflection.association_foreign_key,
+              r.ROW
+            )
           }
 
           @owner.delete_cells(cells_to_delete, @owner.class.table_name)

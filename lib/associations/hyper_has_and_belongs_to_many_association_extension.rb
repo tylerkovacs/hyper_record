@@ -29,9 +29,9 @@ module ActiveRecord
       def insert_record_with_hypertable(record, force=true)
         if @reflection.klass <= ActiveRecord::HyperBase
           @owner.send(@reflection.association_foreign_key)[record.ROW] = 1
-          @owner.write_cells([ [@owner.ROW, record.connection.qualified_column_name(@reflection.association_foreign_key, record.ROW), "1"] ])
+          @owner.write_cells([@owner.connection.cell_native_array(@owner.ROW, @reflection.association_foreign_key, record.ROW, "1")])
           record.send(@reflection.primary_key_name)[@owner.ROW] = 1
-          record.write_cells([ [record.ROW, record.connection.qualified_column_name(@reflection.primary_key_name, @owner.ROW), "1"] ])
+          record.write_cells([@owner.connection.cell_native_array(record.ROW, @reflection.primary_key_name, @owner.ROW, "1")])
         else
           insert_record_without_hypertable(record, force)
         end
@@ -47,8 +47,8 @@ module ActiveRecord
             r.send(@reflection.primary_key_name).delete(@owner.ROW)
 
             # make list of cells that need to be removed from hypertable
-            cells_to_delete_by_table[@owner.class.table_name] << [@owner.ROW, r.connection.qualified_column_name(@reflection.association_foreign_key, r.ROW)]
-            cells_to_delete_by_table[r.class.table_name] << [r.ROW, r.connection.qualified_column_name(@reflection.primary_key_name, @owner.ROW)]
+            cells_to_delete_by_table[@owner.class.table_name] << @owner.connection.cell_native_array(@owner.ROW, @reflection.association_foreign_key, r.ROW)
+            cells_to_delete_by_table[r.class.table_name] << @owner.connection.cell_native_array(r.ROW, @reflection.primary_key_name, @owner.ROW)
           }
 
           for table in cells_to_delete_by_table.keys
