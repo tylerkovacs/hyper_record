@@ -410,13 +410,16 @@ module ActiveRecord
         retry_on_connection_error {
           @connection.with_mutator(table_name) do |mutator|
             t1 = Time.now
-            @connection.set_cells(mutator, cells.map{|c| cell_from_array(c)})
+            @connection.set_cells_as_arrays(mutator,
+              cells.map{|c| cell_array_from_array(c)})
             @@write_latency += Time.now - t1
           end
         }
       end
 
       # Cell passed in as [row_key, column_name, value]
+      # return a Hypertable::ThriftGen::Cell object which is required
+      # if the cell requires a flag on write (delete operations)
       def cell_from_array(array)
         cell = Hypertable::ThriftGen::Cell.new
         cell.row_key = array[0]
@@ -426,6 +429,21 @@ module ActiveRecord
         cell.value = array[2] if array[2]
         cell.timestamp = array[3] if array[3]
         cell
+      end
+
+      # Cell passed in as [row_key, column_name, value]
+      # return a more efficient native array representation of the cell
+      # for use in set_cells_as_arrays (cannot be used when setting a
+      # flag on the cell during write).
+      def cell_array_from_array(array)
+        column_family, column_qualifier = array[1].split(':', 2)
+        [
+          array[0].to_s,
+          column_family.to_s,
+          column_qualifier.to_s,
+          array[2].to_s,
+          array[3].to_s
+        ]
       end
 
       def delete_cells(table_name, cells)
