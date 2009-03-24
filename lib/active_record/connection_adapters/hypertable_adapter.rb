@@ -1,4 +1,9 @@
-require 'active_record/connection_adapters/abstract_adapter'
+unless defined?(ActiveRecord::ConnectionAdapters::AbstractAdapter)
+  # running into some situations where rails has already loaded this, without
+  # require realizing it, and loading again is unsafe (alias_method_chain is a
+  # great way to create infinite recursion loops)
+  require 'active_record/connection_adapters/abstract_adapter'
+end
 require 'active_record/connection_adapters/qualified_column'
 require 'active_record/connection_adapters/hyper_table_definition'
 
