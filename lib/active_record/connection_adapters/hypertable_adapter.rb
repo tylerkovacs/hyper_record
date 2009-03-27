@@ -428,12 +428,12 @@ module ActiveRecord
           local_mutator_created = !mutator
 
           begin
-            mutator ||= @connection.open_mutator(table_name)
             t1 = Time.now
+            mutator ||= @connection.open_mutator(table_name)
             @connection.set_cells_as_arrays(mutator, cells)
-            @@write_latency += Time.now - t1
           ensure
             @connection.close_mutator(mutator, true) if local_mutator_created
+            @@write_latency += Time.now - t1
           end
         }
       end
