@@ -339,6 +339,49 @@ module ActiveRecord
       end
     end
 
+    describe HyperBase, '.save_with_mutator' do
+      fixtures :pages
+
+      it "should successfully save an object with mutator" do
+        m = Page.open_mutator
+        p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
+        p1.save_with_mutator!(m)
+
+        p2 = Page.new({:ROW => 'created_with_mutator_2', :url => 'url_2'})
+        p2.save_with_mutator!(m)
+
+        Page.close_mutator(m)
+
+        new_page_1 = Page.find('created_with_mutator_1')
+        new_page_1.url.should == 'url_1'
+
+        new_page_2 = Page.find('created_with_mutator_2')
+        new_page_2.url.should == 'url_2'
+      end
+
+      it "should not flush the mutator and not create objects when flush is not requested on close mutator" do
+        m = Page.open_mutator
+        p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
+        p1.save_with_mutator!(m)
+        Page.close_mutator(m, false)
+
+        lambda {
+          Page.find('created_with_mutator_1')
+        }.should raise_error(::ActiveRecord::RecordNotFound)
+      end
+
+      it "should support explicit flushing of the mutator" do
+        m = Page.open_mutator
+        p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
+        p1.save_with_mutator!(m)
+        Page.flush_mutator(m)
+        Page.close_mutator(m, false)
+
+        new_page_1 = Page.find('created_with_mutator_1')
+        new_page_1.url.should == 'url_1'
+      end
+    end
+
     describe HyperBase, '.update' do
       fixtures :pages
 

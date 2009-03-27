@@ -1,9 +1,4 @@
-unless defined?(ActiveRecord::ConnectionAdapters::AbstractAdapter)
-  # running into some situations where rails has already loaded this, without
-  # require realizing it, and loading again is unsafe (alias_method_chain is a
-  # great way to create infinite recursion loops)
-  require 'active_record/connection_adapters/abstract_adapter'
-end
+require 'active_record/connection_adapters/abstract_adapter'
 require 'active_record/connection_adapters/qualified_column'
 require 'active_record/connection_adapters/hyper_table_definition'
 
@@ -39,6 +34,10 @@ module ActiveRecord
       @@write_latency = 0.0
       @@cells_read = 0
       cattr_accessor :read_latency, :write_latency, :cells_read
+
+      # Used by retry_on_connection_error() to determine whether to retry
+      @retry_on_failure = true
+      attr_accessor :retry_on_failure
 
       def initialize(connection, logger, config)
         super(connection, logger)
@@ -183,12 +182,12 @@ module ActiveRecord
       # This ensures graceful recovery in the case that the Thrift Broker
       # goes down and then comes back up.
       def retry_on_connection_error
-        retry_on_failure = true
+        @retry_on_failure = true
         begin
           handle_thrift_exceptions_with_missing_message { yield }
         rescue Thrift::TransportException, IOError => err
-          if retry_on_failure
-            retry_on_failure = false
+          if @retry_on_failure
+            @retry_on_failure = false
             @connection.close
             @connection.open
             retry
@@ -417,14 +416,19 @@ module ActiveRecord
         }
       end
 
-      def write_cells(table_name, cells)
+      def write_cells(table_name, cells, mutator=nil)
         return if cells.blank?
 
         retry_on_connection_error {
-          @connection.with_mutator(table_name) do |mutator|
+          local_mutator_created = !mutator
+
+          begin
+            mutator ||= @connection.open_mutator(table_name)
             t1 = Time.now
             @connection.set_cells_as_arrays(mutator, cells)
             @@write_latency += Time.now - t1
+          ensure
+            @connection.close_mutator(mutator, true) if local_mutator_created
           end
         }
       end
@@ -498,6 +502,20 @@ module ActiveRecord
           cells << cell_native_array(row_key, column_name, column_family, fixture_hash[k], timestamp)
         end
         write_cells(table_name, cells)
+      end
+
+      # Mutator methods
+
+      def open_mutator(table_name)
+        @connection.open_mutator(table_name)
+      end
+
+      def close_mutator(mutator, flush=true)
+        @connection.close_mutator(mutator, flush)
+      end
+
+      def flush_mutator(mutator)
+        @connection.flush_mutator(mutator)
       end
 
       private

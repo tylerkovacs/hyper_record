@@ -34,15 +34,31 @@ module ActiveRecord
     end
 
     # Instance Methods
-    def update
-      write_quoted_attributes(attributes_with_quotes(false, false))
+    def update(mutator=nil)
+      write_quoted_attributes(attributes_with_quotes(false, false),
+        self.class.table_name, mutator)
       true
     end
 
-    def create
-      write_quoted_attributes(attributes_with_quotes(false, false))
+    def create(mutator=nil)
+      write_quoted_attributes(attributes_with_quotes(false, false), 
+        self.class.table_name, mutator)
       @new_record = false
       self.attributes[self.class.primary_key]
+    end
+
+    def save_with_mutator(mutator)
+      create_or_update_with_mutator(mutator)
+    end
+
+    def save_with_mutator!(mutator)
+      create_or_update_with_mutator(mutator) || raise(RecordNotSaved)
+    end
+
+    def create_or_update_with_mutator(mutator)
+      raise ReadOnlyRecord if readonly?
+      result = new_record? ? create(mutator) : update(mutator)
+      result != false
     end
 
     def destroy
@@ -124,12 +140,12 @@ module ActiveRecord
       cells
     end
 
-    def write_quoted_attributes(quoted_attrs, table=self.class.table_name)
-      write_cells(quoted_attributes_to_cells(quoted_attrs, table))
+    def write_quoted_attributes(quoted_attrs, table=self.class.table_name, mutator=nil)
+      write_cells(quoted_attributes_to_cells(quoted_attrs, table), table, mutator)
     end
 
     # Write an array of cells to Hypertable
-    def write_cells(cells, table=self.class.table_name)
+    def write_cells(cells, table=self.class.table_name, mutator=nil)
       if HyperBase.log_calls
         msg = [
           "Writing #{cells.length} cells to #{table} table",
@@ -139,7 +155,7 @@ module ActiveRecord
         # puts msg
       end
 
-      connection.write_cells(table, cells)
+      connection.write_cells(table, cells, mutator)
     end
 
     # Delete an array of cells from Hypertable
@@ -366,6 +382,21 @@ module ActiveRecord
           :column_name => name,
           :qualifiers => qualifiers || []
         }
+      end
+
+      # Mutator methods - passed through straight to the Hypertable Adapter.
+
+      # Return an open mutator on this table.
+      def open_mutator
+        self.connection.open_mutator(table_name)
+      end
+
+      def close_mutator(mutator, flush=true)
+        self.connection.close_mutator(mutator, flush)
+      end
+
+      def flush_mutator(mutator)
+        self.connection.flush_mutator(mutator)
       end
     end
   end
