@@ -190,7 +190,7 @@ module ActiveRecord
         @retry_on_failure = true
         begin
           handle_thrift_exceptions_with_missing_message { yield }
-        rescue Thrift::TransportException, IOError, Thrift::ApplicationException => err
+        rescue Thrift::TransportException, IOError, Thrift::ApplicationException, Thrift::ProtocolException => err
           if @retry_on_failure
             @retry_on_failure = false
             @connection.close
