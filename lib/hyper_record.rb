@@ -222,14 +222,6 @@ module ActiveRecord
         # Don't request the ROW key explicitly, it always comes back
         options[:select] ||= qualified_column_names_without_row_key.map{|c| connection.hypertable_column_name(c, table_name)}
 
-        rows = Hash.new{|h,k| h[k] = []}
-
-        # Cells come back in native array format.
-        # [ row_key, column_family, column_qualifier, value, timestamp ]
-        for cell in connection.execute_with_options(options)
-          rows[cell[ROW_KEY_OFFSET]] << cell
-        end
-
         if HyperBase.log_calls
           msg = [ "Select" ]
           for key in options.keys
@@ -246,37 +238,52 @@ module ActiveRecord
           # puts msg
         end
 
-        rows.values.map{|row|
-          row_with_mapped_column_names = {
-            'ROW' => row.first[ROW_KEY_OFFSET]
-          }
+        rows = []
+        current_row = {}
 
-          for cell in row
-            family = connection.rubify_column_name(cell[COLUMN_FAMILY_OFFSET])
+        cells = connection.execute_with_options(options)
 
-            if !cell[COLUMN_QUALIFIER_OFFSET].blank?
-              row_with_mapped_column_names[family] ||= {}
-              row_with_mapped_column_names[family][cell[COLUMN_QUALIFIER_OFFSET]] = cell[VALUE_OFFSET]
-            else
-              row_with_mapped_column_names[family] = cell[VALUE_OFFSET]
-            end
+        # Cells are guaranteed to come back in row key order, so assemble
+        # a row by iterating over each cell and checking to see if the row key
+        # has changed.  If it has, then the row is complete and needs to be
+        # instantiated before processing the next cell.
+        cells.each_with_index do |cell, i|
+          current_row['ROW'] = cell[ROW_KEY_OFFSET]
+
+          family = connection.rubify_column_name(cell[COLUMN_FAMILY_OFFSET])
+
+          if !cell[COLUMN_QUALIFIER_OFFSET].blank?
+            current_row[family] ||= {}
+            current_row[family][cell[COLUMN_QUALIFIER_OFFSET]] = cell[VALUE_OFFSET]
+          else
+            current_row[family] = cell[VALUE_OFFSET]
           end
 
-          # make sure that the resulting object has attributes for all
-          # columns - even ones that aren't in the response (due to limited
-          # select)
-          for column in column_families_without_row_key
-            if !row_with_mapped_column_names.has_key?(column.name)
-              if column.is_a?(ActiveRecord::ConnectionAdapters::QualifiedColumn)
-                row_with_mapped_column_names[column.name] = {}
-              else
-                row_with_mapped_column_names[column.name] = nil
+          # Instantiate the row if we've processed all cells for the row
+          next_index = i + 1
+
+          # Check to see if next cell has different row key or if we're at
+          # the end of the cell stream.
+          if (cells[next_index] and cells[next_index][ROW_KEY_OFFSET] != current_row['ROW']) or next_index >= cells.length
+            # Make sure that the resulting object has attributes for all
+            # columns - even ones that aren't in the response (due to limited
+            # select)
+            for col in column_families_without_row_key
+              if !current_row.has_key?(col.name)
+                if col.is_a?(ActiveRecord::ConnectionAdapters::QualifiedColumn)
+                  current_row[col.name] = {}
+                else
+                  current_row[col.name] = nil
+                end
               end
             end
-          end
 
-          instantiate(row_with_mapped_column_names)
-        }
+            rows << instantiate(current_row)
+            current_row = {}
+          end
+        end
+
+        rows
       end
 
       def find_from_ids(ids, options)
