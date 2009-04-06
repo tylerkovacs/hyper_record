@@ -1,5 +1,6 @@
 0.2.4 (not yet released)
-- support :select option in ActiveRecord.find
+- find_by_hql support
+- support for :select option in calls to ActiveRecord.find
 - expose open_mutator, flush_mutator and close_mutator methods to HyperRecord
   to help speed up write-heavy applications
 - don't duplicate cells unnecessarily while assembling rows

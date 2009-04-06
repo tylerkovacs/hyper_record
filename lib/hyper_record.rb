@@ -220,7 +220,11 @@ module ActiveRecord
         options[:columns] ||= columns
 
         # Don't request the ROW key explicitly, it always comes back
-        options[:select] ||= qualified_column_names_without_row_key.map{|c| connection.hypertable_column_name(c, table_name)}
+        options[:select] ||= qualified_column_names_without_row_key.map{|c| 
+          connection.hypertable_column_name(c, table_name)
+        }
+
+        cells = connection.execute_with_options(options)
 
         if HyperBase.log_calls
           msg = [ "Select" ]
@@ -238,10 +242,12 @@ module ActiveRecord
           # puts msg
         end
 
+        convert_cells_to_instantiated_rows(cells)
+      end
+
+      def convert_cells_to_instantiated_rows(cells)
         rows = []
         current_row = {}
-
-        cells = connection.execute_with_options(options)
 
         # Cells are guaranteed to come back in row key order, so assemble
         # a row by iterating over each cell and checking to see if the row key
@@ -285,6 +291,15 @@ module ActiveRecord
 
         rows
       end
+
+      def find_by_hql(hql)
+        hql_result = connection.execute(hql)
+        cells_in_native_array_format = hql_result.cells.map do |c| 
+          connection.cell_native_array(c.row_key, c.column_family, c.column_qualifier, c.value)
+        end
+        convert_cells_to_instantiated_rows(cells_in_native_array_format)
+      end
+      alias :find_by_sql :find_by_hql
 
       def find_from_ids(ids, options)
         expects_array = ids.first.kind_of?(Array)

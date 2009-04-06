@@ -75,6 +75,28 @@ module ActiveRecord
       end
     end
 
+    describe HyperBase, '.find_by_hql' do
+      fixtures :pages
+
+      it "should return the cells matching the hql specified" do
+        pages = Page.find_by_hql("SELECT * FROM pages LIMIT=1")
+        pages.length.should == 1
+        page = pages.first
+        page.class.should == Page
+        page.name.should == "LOLcats and more"
+        page.url.should == "http://www.icanhascheezburger.com"
+      end
+
+      it "should respond to the find_by_sql alias" do
+        pages = Page.find_by_hql("SELECT * FROM pages LIMIT=1")
+        pages.length.should == 1
+        page = pages.first
+        page.class.should == Page
+        page.name.should == "LOLcats and more"
+        page.url.should == "http://www.icanhascheezburger.com"
+      end
+    end
+
     describe HyperBase, '.find_initial' do
       fixtures :pages
 

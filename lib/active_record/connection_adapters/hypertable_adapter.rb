@@ -10,7 +10,7 @@ require 'active_record/connection_adapters/hyper_table_definition'
 module ActiveRecord
   class Base
     def self.require_hypertable_thrift_client
-      # Include the hypertools driver if one hasn't already been loaded
+      # Include the thrift driver if one hasn't already been loaded
       unless defined? Hypertable::ThriftClient
         gem 'hypertable-thrift-client'
         require_dependency 'thrift_client'
@@ -526,7 +526,7 @@ module ActiveRecord
       private
 
         def select(hql, name=nil)
-          # TODO: need hypertools run_hql to return result set
+          # TODO
           raise "not yet implemented"
         end
     end
