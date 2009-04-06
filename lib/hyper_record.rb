@@ -292,6 +292,16 @@ module ActiveRecord
         rows
       end
 
+      # Retrieve rows from Hypertable by issuing raw HQL.  See the 'HQL
+      # Tutorial' for more information on HQL:
+      # http://hypertable.org/documentation.html
+      # 
+      # Notes:
+      # 1. Do not include a semi-colon at the end of HQL statements.
+      # 2. These queries are not very efficient since cells do not come
+      #    back in (compact) native arry format.  If this is a bottleneck
+      #    for users then we'll need to request a hql_query_as_arrays method
+      #    be added to the Hypertable Thrift Broker.
       def find_by_hql(hql)
         hql_result = connection.execute(hql)
         cells_in_native_array_format = hql_result.cells.map do |c| 
