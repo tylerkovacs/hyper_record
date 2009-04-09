@@ -95,24 +95,6 @@ module ActiveRecord
         end
       end
 
-      describe HypertableAdapter, '.convert_select_columns_to_array_of_columns(' do
-        it "should accept an array as input" do
-          @h.convert_select_columns_to_array_of_columns(["one", "two", "three"]).should == ["one", "two", "three"]
-        end
-
-        it "should accept a string as input and split the results on commas" do
-          @h.convert_select_columns_to_array_of_columns("one,two,three").should == ["one", "two", "three"]
-        end
-
-        it "should strip whitespace from column names" do
-          @h.convert_select_columns_to_array_of_columns(" one,two , three ").should == ["one", "two", "three"]
-        end
-
-        it "should return [] for a request on * columns" do
-          @h.convert_select_columns_to_array_of_columns("*").should == []
-        end
-      end
-
       describe HypertableAdapter, '.create_table_sql' do
         it "should assemble correct hql for creating a table" do
           hql = @h.create_table_hql :new_table do |t|

@@ -210,12 +210,29 @@ module ActiveRecord
         end
       end
 
-      def find_initial(options)
-        options.update(:limit => 1)
-        find_by_options(options).first
+      def find_to_scan_spec(*args)
+        options = args.extract_options!
+        options[:scan_spec] = true
+        args << options
+        find(*args)
       end
 
-      def find_by_options(options)
+      def find_with_scanner(*args, &block)
+        scan_spec = find_to_scan_spec(*args)
+        with_scanner(scan_spec, &block)
+      end
+
+      def find_initial(options)
+        options.update(:limit => 1)
+
+        if options[:scan_spec]
+          find_by_options(options)
+        else
+          find_by_options(options).first
+        end
+      end
+
+      def set_default_options(options)
         options[:table_name] ||= table_name
         options[:columns] ||= columns
 
@@ -223,6 +240,17 @@ module ActiveRecord
         options[:select] ||= qualified_column_names_without_row_key.map{|c| 
           connection.hypertable_column_name(c, table_name)
         }
+      end
+
+      def find_by_options(options)
+        set_default_options(options)
+
+        # If requested, instead of retrieving the matching cells from
+        # Hypertable, simply return a scan spec that matches the finder
+        # options.
+        if options[:scan_spec]
+          return connection.convert_options_to_scan_spec(options)
+        end
 
         cells = connection.execute_with_options(options)
 

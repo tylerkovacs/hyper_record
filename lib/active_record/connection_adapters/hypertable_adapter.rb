@@ -66,26 +66,6 @@ module ActiveRecord
         [@@read_latency, @@write_latency, @@cells_read]
       end
 
-      def convert_select_columns_to_array_of_columns(s, columns=nil)
-        select_rows = s.class == String ? s.split(',').map{|s| s.strip} : s
-        select_rows = select_rows.reject{|s| s == '*'}
-
-        if select_rows.empty? and !columns.blank?
-          for c in columns
-            next if c.name == 'ROW' # skip over the ROW key, always included
-            if c.is_a?(QualifiedColumn)
-              for q in c.qualifiers
-                select_rows << qualified_column_name(c.name, q.to_s)
-              end
-            else
-              select_rows << c.name
-            end
-          end
-        end
-
-        select_rows
-      end
-
       def adapter_name
         'Hypertable'
       end
@@ -113,39 +93,7 @@ module ActiveRecord
       end
 
       def execute_with_options(options)
-        # Rows can be specified using a number of different options:
-        # row ranges (start_row and end_row)
-        options[:row_intervals] ||= []
-
-        if options[:row_keys]
-          options[:row_keys].flatten.each do |rk|
-            row_interval = Hypertable::ThriftGen::RowInterval.new
-            row_interval.start_row = rk
-            row_interval.start_inclusive = true
-            row_interval.end_row = rk
-            row_interval.end_inclusive = true
-            options[:row_intervals] << row_interval
-          end
-        elsif options[:start_row]
-          raise "missing :end_row" if !options[:end_row]
-
-          options[:start_inclusive] = options.has_key?(:start_inclusive) ? options[:start_inclusive] : true
-          options[:end_inclusive] = options.has_key?(:end_inclusive) ? options[:end_inclusive] : true
-
-          row_interval = Hypertable::ThriftGen::RowInterval.new
-          row_interval.start_row = options[:start_row]
-          row_interval.start_inclusive = options[:start_inclusive]
-          row_interval.end_row = options[:end_row]
-          row_interval.end_inclusive = options[:end_inclusive]
-          options[:row_intervals] << row_interval
-        end
-
-        sanitize_conditions(options)
-
-        select_rows = convert_select_columns_to_array_of_columns(options[:select], options[:columns])
-
         t1 = Time.now
-        table_name = options[:table_name]
         scan_spec = convert_options_to_scan_spec(options)
 
         # Use native array method (get_cells_as_arrays) for cell retrieval - 
@@ -156,7 +104,7 @@ module ActiveRecord
         #   ["page_1", "url", "", "http://...", "1237331693147619002"]
         # ]
         cells = retry_on_connection_error {
-          @connection.get_cells_as_arrays(table_name, scan_spec)
+          @connection.get_cells_as_arrays(options[:table_name], scan_spec)
         }
 
         # Capture performance metrics
@@ -209,6 +157,35 @@ module ActiveRecord
       end
 
       def convert_options_to_scan_spec(options={})
+        sanitize_conditions(options)
+
+        # Rows can be specified using a number of different options:
+        # row ranges (start_row and end_row)
+        options[:row_intervals] ||= []
+
+        if options[:row_keys]
+          options[:row_keys].flatten.each do |rk|
+            row_interval = Hypertable::ThriftGen::RowInterval.new
+            row_interval.start_row = rk
+            row_interval.start_inclusive = true
+            row_interval.end_row = rk
+            row_interval.end_inclusive = true
+            options[:row_intervals] << row_interval
+          end
+        elsif options[:start_row]
+          raise "missing :end_row" if !options[:end_row]
+
+          options[:start_inclusive] = options.has_key?(:start_inclusive) ? options[:start_inclusive] : true
+          options[:end_inclusive] = options.has_key?(:end_inclusive) ? options[:end_inclusive] : true
+
+          row_interval = Hypertable::ThriftGen::RowInterval.new
+          row_interval.start_row = options[:start_row]
+          row_interval.start_inclusive = options[:start_inclusive]
+          row_interval.end_row = options[:end_row]
+          row_interval.end_inclusive = options[:end_inclusive]
+          options[:row_intervals] << row_interval
+        end
+
         scan_spec = Hypertable::ThriftGen::ScanSpec.new
         options[:revs] ||= 1
         options[:return_deletes] ||= false
@@ -237,7 +214,7 @@ module ActiveRecord
                 status, family, qualifier = is_qualified_column_name?(column)
                 family
               end.uniq
-            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly
+            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly, :scan_spec
               # ignore
             else
               raise "Unrecognized scan spec option: #{key}"

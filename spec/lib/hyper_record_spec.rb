@@ -718,6 +718,24 @@ module ActiveRecord
         cell_count.should == 4
       end
 
+      it "should return a scan spec from find_to_scan_spec" do
+        scan_spec = Page.find_to_scan_spec(:all, :limit => 1)
+        scan_spec.is_a?(Hypertable::ThriftGen::ScanSpec).should be_true
+        scan_spec.row_limit.should == 1
+      end
+
+      it "should yield a scanner to a block from find_with_scanner" do
+        cell_count = 0
+        Page.find_with_scanner(:all, :limit => 1) do |scanner|
+          scanner.is_a?(Fixnum).should be_true
+          Page.each_cell_as_arrays(scanner) do |cell|
+            cell.is_a?(Array).should be_true
+            cell_count += 1
+          end
+        end
+        cell_count.should == 2
+      end
+
       it "should support native each_row scanner method"
       it "should support native each_row_as_arrays scanner method"
     end
