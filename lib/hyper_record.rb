@@ -292,16 +292,6 @@ module ActiveRecord
         rows
       end
 
-      # Retrieve rows from Hypertable by issuing raw HQL.  See the 'HQL
-      # Tutorial' for more information on HQL:
-      # http://hypertable.org/documentation.html
-      # 
-      # Notes:
-      # 1. Do not include a semi-colon at the end of HQL statements.
-      # 2. These queries are not very efficient since cells do not come
-      #    back in (compact) native arry format.  If this is a bottleneck
-      #    for users then we'll need to request a hql_query_as_arrays method
-      #    be added to the Hypertable Thrift Broker.
       def find_by_hql(hql)
         hql_result = connection.execute(hql)
         cells_in_native_array_format = hql_result.cells.map do |c| 
@@ -429,6 +419,40 @@ module ActiveRecord
 
       def flush_mutator(mutator)
         self.connection.flush_mutator(mutator)
+      end
+
+      # Scanner methods
+      def open_scanner(scan_spec)
+        self.connection.open_scanner(self.table_name, scan_spec)
+      end
+
+      def close_scanner(scanner)
+        self.connection.close_scanner(scanner)
+      end
+
+      def with_scanner(scan_spec, &block)
+        self.connection.with_scanner(self.table_name, scan_spec, &block)
+      end
+
+      # Iterator methods
+      def each_cell(scanner, &block)
+        self.connection.each_cell(scanner, &block)
+      end
+
+      def each_cell_as_arrays(scanner, &block)
+        self.connection.each_cell_as_arrays(scanner, &block)
+      end
+
+      def each_row(scanner, &block)
+        self.connection.each_row(scanner, &block)
+      end
+
+      def each_row_as_arrays(scanner, &block)
+        self.connection.each_row_as_arrays(scanner, &block)
+      end
+
+      def with_thrift_client
+        self.connection.with_thrift_client
       end
     end
   end

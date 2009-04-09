@@ -23,11 +23,12 @@ module ActiveRecord
 
       raise "Hypertable config missing :host in database.yml" if !config[:host]
 
-      host = config[:host] || 'localhost'
-      port = config[:port] || 38088
-      timeout_ms = config[:timeout] || 20000
+      config[:host] ||= 'localhost'
+      config[:port] ||= 38088
+      config[:timeout] ||= 20000
 
-      connection = Hypertable::ThriftClient.new(host, port, timeout_ms)
+      connection = Hypertable::ThriftClient.new(config[:host], config[:port], 
+        config[:timeout])
 
       ConnectionAdapters::HypertableAdapter.new(connection, logger, config)
     end
@@ -48,6 +49,11 @@ module ActiveRecord
         super(connection, logger)
         @config = config
         @hypertable_column_names = {}
+      end
+
+      def with_thrift_client
+        @connection.with_thrift_client(@config[:host], config[:port], 
+          config[:timeout])
       end
 
       def self.reset_timing
@@ -521,6 +527,38 @@ module ActiveRecord
 
       def flush_mutator(mutator)
         @connection.flush_mutator(mutator)
+      end
+
+      # Scanner methods
+
+      def open_scanner(table_name, scan_spec)
+        @connection.open_scanner(table_name, scan_spec)
+      end
+
+      def close_scanner(scanner)
+        @connection.close_scanner(scanner)
+      end
+
+      def with_scanner(table_name, scan_spec, &block)
+        @connection.with_scanner(table_name, scan_spec, &block)
+      end
+
+      # Iterator methods
+
+      def each_cell(scanner, &block)
+        @connection.each_cell(scanner, &block)
+      end
+
+      def each_cell_as_arrays(scanner, &block)
+        @connection.each_cell_as_arrays(scanner, &block)
+      end
+
+      def each_row(scanner, &block)
+        @connection.each_row(scanner, &block)
+      end
+
+      def each_row_as_arrays(scanner, &block)
+        @connection.each_row_as_arrays(scanner, &block)
       end
 
       private

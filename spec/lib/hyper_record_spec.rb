@@ -669,5 +669,58 @@ module ActiveRecord
         end
       end
     end
+
+    describe HyperBase, '.scanner' do
+      fixtures :pages
+
+      it "should return a scanner object from open_scanner" do
+        scan_spec = Hypertable::ThriftGen::ScanSpec.new
+        scanner = Page.open_scanner(scan_spec)
+        scanner.class.should == Fixnum
+        Page.close_scanner(scanner)
+      end
+
+      it "should yield a scanner object from with_scanner" do
+        scan_spec = Hypertable::ThriftGen::ScanSpec.new
+        Page.with_scanner(scan_spec) do |scanner|
+          scanner.is_a?(Fixnum).should be_true
+        end
+      end
+
+      it "should yield a scanner object from with_scanner" do
+        scan_spec = Hypertable::ThriftGen::ScanSpec.new
+        Page.with_scanner(scan_spec) do |scanner|
+          scanner.is_a?(Fixnum).should be_true
+        end
+      end
+
+      it "should support native each_cell scanner method" do
+        scan_spec = Hypertable::ThriftGen::ScanSpec.new
+        cell_count = 0
+        Page.with_scanner(scan_spec) do |scanner|
+          Page.each_cell(scanner) do |cell|
+            cell.is_a?(Hypertable::ThriftGen::Cell).should be_true
+            cell_count += 1
+          end
+        end
+        cell_count.should == 4
+      end
+
+      it "should support native each_cell_as_arrays scanner method" do
+        scan_spec = Hypertable::ThriftGen::ScanSpec.new
+        cell_count = 0
+        Page.with_scanner(scan_spec) do |scanner|
+          Page.each_cell_as_arrays(scanner) do |cell|
+            cell.is_a?(Array).should be_true
+            cell_count += 1
+          end
+        end
+        cell_count.should == 4
+      end
+
+      it "should support native each_row scanner method"
+      it "should support native each_row_as_arrays scanner method"
+    end
   end
 end
+
