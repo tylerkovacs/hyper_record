@@ -54,6 +54,33 @@ module Hypertable
         cells = next_cells(scanner);
       end
     end
+
+    def each_cell_as_arrays(scanner)
+      cells = next_cells_as_arrays(scanner);
+
+      while (cells.size > 0)
+        cells.each {|cell| yield cell}
+        cells = next_cells_as_arrays(scanner);
+      end
+    end
+
+    def each_row(scanner)
+      row = next_row(scanner);
+
+      while row
+        yield row
+        row = next_row(scanner);
+      end
+    end
+
+    def each_row_as_arrays(scanner)
+      row = next_row_as_arrays(scanner);
+
+      while row
+        yield row
+        row = next_row_as_arrays(scanner);
+      end
+    end
   end
 
   def self.with_thrift_client(host, port, timeout_ms = 20000)

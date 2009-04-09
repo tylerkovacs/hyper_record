@@ -1,7 +1,7 @@
 require File.dirname(__FILE__) + '/test_helper'
 
 class ThriftClientTest < Test::Unit::TestCase
-  context "scan spec" do
+  context "scanner methods" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         client.hql_query('drop table if exists thrift_test')
@@ -16,102 +16,182 @@ class ThriftClientTest < Test::Unit::TestCase
       end
     end
 
-    should "return all rows on empty scan spec" do
-      Hypertable.with_thrift_client("localhost", 38080) do |client|
-        scan_spec = Hypertable::ThriftGen::ScanSpec.new
-        cells = client.get_cells("thrift_test", scan_spec)
-        assert_equal 6, cells.length
-      end
-    end
-
-    context "limit" do
-      should "return just the first rows on empty scan spec with limit of 1" do
+    context "each cell" do
+      should "return cells individually" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          scan_spec.row_limit = 1
-          cells = client.get_cells("thrift_test", scan_spec)
-          assert_equal 2, cells.length
+          client.with_scanner("thrift_test", scan_spec) do |scanner|
+            cell_count = 0
+            client.each_cell(scanner) do |cell|
+              assert_equal Hypertable::ThriftGen::Cell, cell.class
+              cell_count += 1
+            end
+            assert_equal 6, cell_count
+          end
         end
       end
     end
 
-    context "cell interval" do
-      should "return matching cells on cell interval" do
+    context "each cell as arrays" do
+      should "return cells individually in native array format" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
-          cell_interval = Hypertable::ThriftGen::CellInterval.new
-          cell_interval.start_row = 'k1'
-          cell_interval.start_column = 'col2'
-          cell_interval.start_inclusive = true
-          cell_interval.end_row = 'k3'
-          cell_interval.end_column = 'col1'
-          cell_interval.end_inclusive = true
-
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          scan_spec.cell_intervals = [cell_interval]
-          cells = client.get_cells("thrift_test", scan_spec)
-          assert_equal 4, cells.length
+          client.with_scanner("thrift_test", scan_spec) do |scanner|
+            cell_count = 0
+            client.each_cell_as_arrays(scanner) do |cell|
+              assert_equal Array, cell.class
+              cell_count += 1
+            end
+            assert_equal 6, cell_count
+          end
         end
       end
     end
 
-    context "row interval" do
-      should "return matching rows on row interval with start row and start inclusive" do
+    context "each row" do
+      should "return rows individually" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
-          row_interval = Hypertable::ThriftGen::RowInterval.new
-          row_interval.start_row = 'k2'
-          row_interval.start_inclusive = true
-          row_interval.end_row = 'k3'
-          row_interval.end_inclusive = true
-
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          scan_spec.row_intervals = [row_interval]
+          client.with_scanner("thrift_test", scan_spec) do |scanner|
+            cell_count = 0
+            row_count = 0
+            client.each_row(scanner) do |row|
+              assert_equal Array, row.class
+              assert_equal 2, row.length
+              row.each do |cell| 
+                assert_equal Hypertable::ThriftGen::Cell, cell.class
+                cell_count +=1
+              end
+              row_count += 1
+            end
+            assert_equal 6, cell_count
+            assert_equal 3, row_count
+          end
+        end
+      end
+    end
+
+    context "each row as arrays" do
+      should "return rows individually in native array format" do
+        Hypertable.with_thrift_client("localhost", 38080) do |client|
+          scan_spec = Hypertable::ThriftGen::ScanSpec.new
+          client.with_scanner("thrift_test", scan_spec) do |scanner|
+            cell_count = 0
+            row_count = 0
+            client.each_row_as_arrays(scanner) do |row|
+              assert_equal Array, row.class
+              assert_equal 2, row.length
+              row.each do |cell| 
+                assert_equal Array, cell.class
+                cell_count +=1
+              end
+              row_count += 1
+            end
+            assert_equal 6, cell_count
+            assert_equal 3, row_count
+          end
+        end
+      end
+    end
+
+    context "scan spec" do
+      should "return all rows on empty scan spec" do
+        Hypertable.with_thrift_client("localhost", 38080) do |client|
+          scan_spec = Hypertable::ThriftGen::ScanSpec.new
           cells = client.get_cells("thrift_test", scan_spec)
-          assert_equal 4, cells.length
+          assert_equal 6, cells.length
         end
       end
 
-      should "return matching rows on row interval with start row and start exclusive" do
-        Hypertable.with_thrift_client("localhost", 38080) do |client|
-          row_interval = Hypertable::ThriftGen::RowInterval.new
-          row_interval.start_row = 'k2'
-          row_interval.start_inclusive = false
-          row_interval.end_row = 'k3'
-          row_interval.end_inclusive = true
-
-          scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          scan_spec.row_intervals = [row_interval]
-          cells = client.get_cells("thrift_test", scan_spec)
-          assert_equal 2, cells.length
+      context "limit" do
+        should "return just the first rows on empty scan spec with limit of 1" do
+          Hypertable.with_thrift_client("localhost", 38080) do |client|
+            scan_spec = Hypertable::ThriftGen::ScanSpec.new
+            scan_spec.row_limit = 1
+            cells = client.get_cells("thrift_test", scan_spec)
+            assert_equal 2, cells.length
+          end
         end
       end
 
-      should "return matching rows on row interval with end row and end inclusive" do
-        Hypertable.with_thrift_client("localhost", 38080) do |client|
-          row_interval = Hypertable::ThriftGen::RowInterval.new
-          row_interval.start_row = 'k1'
-          row_interval.start_inclusive = true
-          row_interval.end_row = 'k2'
-          row_interval.end_inclusive = true
+      context "cell interval" do
+        should "return matching cells on cell interval" do
+          Hypertable.with_thrift_client("localhost", 38080) do |client|
+            cell_interval = Hypertable::ThriftGen::CellInterval.new
+            cell_interval.start_row = 'k1'
+            cell_interval.start_column = 'col2'
+            cell_interval.start_inclusive = true
+            cell_interval.end_row = 'k3'
+            cell_interval.end_column = 'col1'
+            cell_interval.end_inclusive = true
 
-          scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          scan_spec.row_intervals = [row_interval]
-          cells = client.get_cells("thrift_test", scan_spec)
-          assert_equal 4, cells.length
+            scan_spec = Hypertable::ThriftGen::ScanSpec.new
+            scan_spec.cell_intervals = [cell_interval]
+            cells = client.get_cells("thrift_test", scan_spec)
+            assert_equal 4, cells.length
+          end
         end
       end
 
-      should "return matching rows on row interval with end row and end exclusive" do
-        Hypertable.with_thrift_client("localhost", 38080) do |client|
-          row_interval = Hypertable::ThriftGen::RowInterval.new
-          row_interval.start_row = 'k1'
-          row_interval.start_inclusive = true
-          row_interval.end_row = 'k2'
-          row_interval.end_inclusive = false
+      context "row interval" do
+        should "return matching rows on row interval with start row and start inclusive" do
+          Hypertable.with_thrift_client("localhost", 38080) do |client|
+            row_interval = Hypertable::ThriftGen::RowInterval.new
+            row_interval.start_row = 'k2'
+            row_interval.start_inclusive = true
+            row_interval.end_row = 'k3'
+            row_interval.end_inclusive = true
 
-          scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          scan_spec.row_intervals = [row_interval]
-          cells = client.get_cells("thrift_test", scan_spec)
-          assert_equal 2, cells.length
+            scan_spec = Hypertable::ThriftGen::ScanSpec.new
+            scan_spec.row_intervals = [row_interval]
+            cells = client.get_cells("thrift_test", scan_spec)
+            assert_equal 4, cells.length
+          end
+        end
+
+        should "return matching rows on row interval with start row and start exclusive" do
+          Hypertable.with_thrift_client("localhost", 38080) do |client|
+            row_interval = Hypertable::ThriftGen::RowInterval.new
+            row_interval.start_row = 'k2'
+            row_interval.start_inclusive = false
+            row_interval.end_row = 'k3'
+            row_interval.end_inclusive = true
+
+            scan_spec = Hypertable::ThriftGen::ScanSpec.new
+            scan_spec.row_intervals = [row_interval]
+            cells = client.get_cells("thrift_test", scan_spec)
+            assert_equal 2, cells.length
+          end
+        end
+
+        should "return matching rows on row interval with end row and end inclusive" do
+          Hypertable.with_thrift_client("localhost", 38080) do |client|
+            row_interval = Hypertable::ThriftGen::RowInterval.new
+            row_interval.start_row = 'k1'
+            row_interval.start_inclusive = true
+            row_interval.end_row = 'k2'
+            row_interval.end_inclusive = true
+
+            scan_spec = Hypertable::ThriftGen::ScanSpec.new
+            scan_spec.row_intervals = [row_interval]
+            cells = client.get_cells("thrift_test", scan_spec)
+            assert_equal 4, cells.length
+          end
+        end
+
+        should "return matching rows on row interval with end row and end exclusive" do
+          Hypertable.with_thrift_client("localhost", 38080) do |client|
+            row_interval = Hypertable::ThriftGen::RowInterval.new
+            row_interval.start_row = 'k1'
+            row_interval.start_inclusive = true
+            row_interval.end_row = 'k2'
+            row_interval.end_inclusive = false
+
+            scan_spec = Hypertable::ThriftGen::ScanSpec.new
+            scan_spec.row_intervals = [row_interval]
+            cells = client.get_cells("thrift_test", scan_spec)
+            assert_equal 2, cells.length
+          end
         end
       end
     end

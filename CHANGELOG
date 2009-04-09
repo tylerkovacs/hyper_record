@@ -1,35 +1,39 @@
-0.2.4 (not yet released)
+0.2.5 (not yet released)
+- add each_cell_as_arrays, each_row and each_row_as_arrays methods to 
+  ruby thrift client
+
+0.2.4 2009/04/06
 - find_by_hql support
 - support for :select option in calls to ActiveRecord.find
 - expose open_mutator, flush_mutator and close_mutator methods to HyperRecord
   to help speed up write-heavy applications
 - don't duplicate cells unnecessarily while assembling rows
 
-0.2.3 on 2009/03/18 [tyler.kovacs]
+0.2.3 on 2009/03/18
 - optimize writes by using set_cells_as_arrays to write data in cell native
   array form
 - monkey patch borrow method of Thrift::FramedTransport needed to return
   substrings as well
 
-0.2.2 on 2009/03/17 [tyler.kovacs]
+0.2.2 on 2009/03/17
 - monkey patch Thrift::FramedTransport to fix performance issue in thrift
   transport ruby code (1000x faster than default implementation)
 - import and utilize new thrift client moethods that implement native
   array interface for cell retrieval (100x faster than creating
   Hypertable::ThriftGen::Cell objects)
 
-0.2.1 on 2009/03/06 [kball]
-- add rudimentary support for timestamps
+0.2.1 on 2009/03/06 
+- add rudimentary support for timestamps [kball]
 
-0.2.0 on 2009/03/05 [tyler.kovacs]
+0.2.0 on 2009/03/05
 - bundle hypertable_adapter and hypertable_thrift_client code to
   simplify installation
 - support for simple migrations in raw HQL or ActiveRecord::Migration format
 - attempt to reconnect to ThirftBroker on connection errors
 - intercept Thrift exceptions to make them compatible with Rails
 
-0.1.1 on 2009/03/03 [tyler.kovacs]
+0.1.1 on 2009/03/03
 - don't use quoted table name in find_by_options
 
-0.1.0 on 2009/02/01 [tyler.kovacs]
+0.1.0 on 2009/02/01
 - initial release with basic ActiveRecord and association features
