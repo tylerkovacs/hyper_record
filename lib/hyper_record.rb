@@ -222,6 +222,50 @@ module ActiveRecord
         with_scanner(scan_spec, &block)
       end
 
+      # Returns each row matching the finder options as a HyperRecord
+      # object.  Each object is yielded to the caller so that large queries 
+      # can be processed one object at a time without pulling the entire 
+      # result set into memory.
+      #
+      # Page.find_each_row(:all) do |page|
+      #   ...
+      # end
+      def find_each_row(*args)
+        find_each_row_as_arrays(*args) do |row|
+          yield convert_cells_to_instantiated_rows(row).first
+        end
+      end
+
+      # Returns each row matching the finder options as an array of cells
+      # in native array format.  Each row is yielded to the caller so that
+      # large queries can be processed one row at a time without pulling
+      # the entire result set into memory.
+      #
+      # Page.find_each_row(:all) do |page_as_array_of_cells|
+      #   ...
+      # end
+      def find_each_row_as_arrays(*args)
+        scan_spec = find_to_scan_spec(*args)
+        with_scanner(scan_spec) do |scanner|
+          row = []
+          current_row_key = nil
+
+          each_cell_as_arrays(scanner) do |cell|
+            current_row_key ||= cell[ROW_KEY_OFFSET]
+
+            if cell[ROW_KEY_OFFSET] == current_row_key
+              row << cell
+            else
+              yield row
+              row = [cell]
+              current_row_key = cell[ROW_KEY_OFFSET]
+            end
+          end 
+
+          yield row unless row.empty?
+        end
+      end
+
       def find_initial(options)
         options.update(:limit => 1)
 
@@ -273,7 +317,7 @@ module ActiveRecord
         convert_cells_to_instantiated_rows(cells)
       end
 
-      def convert_cells_to_instantiated_rows(cells)
+      def convert_cells_to_hashes(cells)
         rows = []
         current_row = {}
 
@@ -312,12 +356,16 @@ module ActiveRecord
               end
             end
 
-            rows << instantiate(current_row)
+            rows << current_row
             current_row = {}
           end
         end
 
         rows
+      end
+
+      def convert_cells_to_instantiated_rows(cells)
+        convert_cells_to_hashes(cells).map{|row| instantiate(row)}
       end
 
       def find_by_hql(hql)

@@ -1,9 +1,15 @@
 0.2.5 (not yet released)
-- add each_cell_as_arrays, each_row and each_row_as_arrays methods to 
-  ruby thrift client
-- new find_with_scanner and find_to_scan_spec methods for iterating over 
-  results in small batches, doesn't exhaust memory on million-row queries
-- new option (:row_intervals) for find that retrieves cells from multiple 
+- added methods to raw ruby thrift client for iterating over large results
+  - each_cell_as_arrays
+  - each_row (still has bug in underlying code)
+  - each_row_as_arrays (still has bug in underlying code)
+- new HyperRecord methods for iterating over results in small batches, doesn't 
+  exhaust memory on million-row queries
+  - find_each_row (returns each row as HyperRecord object)
+  - find_each_row_as_arrays (returns each row in native array format - fast)
+  - find_to_scan_spec methods (converts finder options to scan spec)
+  - find_with_scanner (converts finder options to a scanner)
+- new finder option (:row_intervals) that retrieves cells from multiple 
   row intervals in a single query
 
 0.2.4 2009/04/06

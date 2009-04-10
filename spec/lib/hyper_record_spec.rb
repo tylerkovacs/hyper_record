@@ -778,6 +778,41 @@ module ActiveRecord
         cell_count.should == 2
       end
 
+      it "should yield each row when calling find_each_row_as_arrays" do
+        cell_count = 0
+        row_count = 0
+
+        Page.find_each_row_as_arrays(:all) do |row|
+          row.is_a?(Array).should be_true
+          row_count += 1
+          cell_count += row.length
+        end
+
+        row_count.should == 2
+        cell_count.should == 4
+      end
+
+      it "should convert an array of cells into a hash" do
+        Page.find_each_row_as_arrays(:all, :limit => 1) do |row|
+          page_hash = Page.convert_cells_to_hashes(row).first
+          page_hash.is_a?(Hash).should be_true
+          page_hash['ROW'].should == "page_1"
+          page_hash['name'].should == "LOLcats and more"
+          page_hash['url'].should == "http://www.icanhascheezburger.com"
+        end
+      end
+
+      it "should yield each row as a HyperRecord object when calling find_each_row" do
+        row_count = 0
+
+        Page.find_each_row(:all) do |row|
+          row.is_a?(Page).should be_true
+          row_count += 1
+        end
+
+        row_count.should == 2
+      end
+
       it "should support native each_row scanner method"
       it "should support native each_row_as_arrays scanner method"
     end
