@@ -160,30 +160,34 @@ module ActiveRecord
         sanitize_conditions(options)
 
         # Rows can be specified using a number of different options:
-        # row ranges (start_row and end_row)
-        options[:row_intervals] ||= []
+        # :row_keys => [row_key_1, row_key_2, ...]
+        # :start_row and :end_row
+        # :row_intervals => [[start_1, end_1], [start_2, end_2]]
+        row_intervals = []
+
+        options[:start_inclusive] = options.has_key?(:start_inclusive) ? options[:start_inclusive] : true
+        options[:end_inclusive] = options.has_key?(:end_inclusive) ? options[:end_inclusive] : true
 
         if options[:row_keys]
           options[:row_keys].flatten.each do |rk|
-            row_interval = Hypertable::ThriftGen::RowInterval.new
-            row_interval.start_row = rk
-            row_interval.start_inclusive = true
-            row_interval.end_row = rk
-            row_interval.end_inclusive = true
-            options[:row_intervals] << row_interval
+            row_intervals << [rk, rk]
+          end
+        elsif options[:row_intervals]
+          options[:row_intervals].each do |ri|
+            row_intervals << [ri.first, ri.last]
           end
         elsif options[:start_row]
           raise "missing :end_row" if !options[:end_row]
+          row_intervals << [options[:start_row], options[:end_row]]
+        end
 
-          options[:start_inclusive] = options.has_key?(:start_inclusive) ? options[:start_inclusive] : true
-          options[:end_inclusive] = options.has_key?(:end_inclusive) ? options[:end_inclusive] : true
-
-          row_interval = Hypertable::ThriftGen::RowInterval.new
-          row_interval.start_row = options[:start_row]
-          row_interval.start_inclusive = options[:start_inclusive]
-          row_interval.end_row = options[:end_row]
-          row_interval.end_inclusive = options[:end_inclusive]
-          options[:row_intervals] << row_interval
+        options[:row_intervals] = row_intervals.map do |row_interval|
+          ri = Hypertable::ThriftGen::RowInterval.new
+          ri.start_row = row_interval.first
+          ri.start_inclusive = options[:start_inclusive]
+          ri.end_row = row_interval.last
+          ri.end_inclusive = options[:end_inclusive]
+          ri
         end
 
         scan_spec = Hypertable::ThriftGen::ScanSpec.new

@@ -154,6 +154,48 @@ module ActiveRecord
         pages.length.should == 2
       end
 
+      it "should support the start_row and end_row option" do
+        p = Page.new({:ROW => 'row key', :name => 'new entry'})
+        p.save.should be_true
+        pages = Page.find(:all)
+        pages.length.should == 3
+        start_row = pages[1].ROW
+        end_row = pages[2].ROW
+
+        pages_2 = Page.find(:all, :start_row => start_row, :end_row => end_row)
+        pages_2.length.should == 2
+        pages_2[0].ROW.should == start_row
+        pages_2[1].ROW.should == end_row
+      end
+
+      it "should support the row_keys option" do
+        p = Page.new({:ROW => 'row key', :name => 'new entry'})
+        p.save.should be_true
+        pages = Page.find(:all)
+        pages.length.should == 3
+        row_key_1 = pages[1].ROW
+        row_key_2 = pages[2].ROW
+
+        pages_2 = Page.find(:all, :row_keys => [row_key_1, row_key_2])
+        pages_2.length.should == 2
+        pages_2[0].ROW.should == row_key_1
+        pages_2[1].ROW.should == row_key_2
+      end
+
+      it "should support the row_intervals option" do
+        p = Page.new({:ROW => 'row key', :name => 'new entry'})
+        p.save.should be_true
+        pages = Page.find(:all)
+        pages.length.should == 3
+        row_key_1 = pages[1].ROW
+        row_key_2 = pages[2].ROW
+
+        pages_2 = Page.find(:all, :row_intervals => [[row_key_1, row_key_2]])
+        pages_2.length.should == 2
+        pages_2[0].ROW.should == row_key_1
+        pages_2[1].ROW.should == row_key_2
+      end
+
       it "should not support finder conditions not in Hash format" do
         lambda {Page.find(:all, :conditions => "value = 1")}.should raise_error
       end

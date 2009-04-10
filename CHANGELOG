@@ -3,6 +3,8 @@
   ruby thrift client
 - new find_with_scanner and find_to_scan_spec methods for iterating over 
   results in small batches, doesn't exhaust memory on million-row queries
+- new option (:row_intervals) for find that retrieves cells from multiple 
+  row intervals in a single query
 
 0.2.4 2009/04/06
 - find_by_hql support
