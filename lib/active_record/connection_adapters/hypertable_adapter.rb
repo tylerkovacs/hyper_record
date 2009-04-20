@@ -93,8 +93,8 @@ module ActiveRecord
       end
 
       def execute_with_options(options)
-        t1 = Time.now
         scan_spec = convert_options_to_scan_spec(options)
+        t1 = Time.now
 
         # Use native array method (get_cells_as_arrays) for cell retrieval - 
         # much faster than get_cells that returns Hypertable::ThriftGen::Cell

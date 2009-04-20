@@ -36,6 +36,8 @@ INSTALLATION
      host: localhost
      port: 38080
 
+   NOTE: HyperRecord requires Thrift SVN revision 765279 or later.
+
 4. Add the following to the bottom of config/environment.rb:
 
   require 'hyper_record'
