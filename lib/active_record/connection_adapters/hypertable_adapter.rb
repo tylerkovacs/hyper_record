@@ -513,7 +513,7 @@ module ActiveRecord
       # Scanner methods
 
       def open_scanner(table_name, scan_spec)
-        @connection.open_scanner(table_name, scan_spec)
+        @connection.open_scanner(table_name, scan_spec, true)
       end
 
       def close_scanner(scanner)
