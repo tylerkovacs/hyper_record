@@ -1,4 +1,7 @@
-0.2.5 2009/04/07
+0.2.6 2009/04/20
+- fix bug interacting with new open_scanner API
+
+0.2.5 2009/04/20
 - added methods to raw ruby thrift client for iterating over large results
   - each_cell_as_arrays
   - each_row (still has bug in underlying code)
