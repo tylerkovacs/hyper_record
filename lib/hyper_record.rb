@@ -482,6 +482,23 @@ module ActiveRecord
         }
       end
 
+      # row_key_attributes :regex => /_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})$/, :attribute_names => [:timestamp]
+      attr_accessor :row_key_attributes
+      def row_key_attributes(*attrs)
+        symbolized_attrs = attrs.first.symbolize_keys
+        @@row_key_attributes_regex = symbolized_attrs[:regex]
+        @@row_key_attributes_names = symbolized_attrs[:attribute_names]
+
+        @@row_key_attributes_names.each_with_index do |attribute_name, i|
+          self.class_eval %{
+            def #{attribute_name}
+              matches = self.ROW.to_s.match(@@row_key_attributes_regex)
+              matches ? (matches[#{i + 1}] || '') : ''
+            end
+          } 
+        end
+      end
+
       # Mutator methods - passed through straight to the Hypertable Adapter.
 
       # Return an open mutator on this table.

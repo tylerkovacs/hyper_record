@@ -816,6 +816,74 @@ module ActiveRecord
       it "should support native each_row scanner method"
       it "should support native each_row_as_arrays scanner method"
     end
+
+    describe HyperBase, '.row_key_attributes' do
+      it "should extract attributes out of the row key" do
+        Page.class_eval do
+          row_key_attributes :regex => /_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})$/, :attribute_names => [:timestamp]
+        end
+
+        p = Page.new
+        p.ROW = "apikey_1066_2008-12-25_03:00"
+        p.timestamp.should == '2008-12-25_03:00'
+      end
+
+      it "should return empty string if regex doesn't match row key" do
+        Page.class_eval do
+          row_key_attributes :regex => /will_not_match/, :attribute_names => [:foo]
+        end
+
+        p = Page.new
+        p.ROW = "row key"
+        p.foo.should == ''
+      end
+
+      it "should allow multiple attributes to be extracted from row key" do
+        Page.class_eval do
+          row_key_attributes :regex => /^sponsorship_([a-z0-9]+)_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})_(\d+)$/, :attribute_names => [:sponsorship_id, :timestamp, :partner_id]
+        end
+
+        p = Page.new
+        p.ROW = "sponsorship_61066_2009-04-12_07:00_166"
+        p.sponsorship_id.should == '61066'
+        p.timestamp.should == '2009-04-12_07:00'
+        p.partner_id.should == '166'
+      end
+
+      it "should return empty string on partial match" do
+        Page.class_eval do
+          row_key_attributes :regex => /^sponsorship_([a-z0-9]+)_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})_?(\d+)?$/, :attribute_names => [:sponsorship_id, :timestamp, :partner_id]
+        end
+
+        p = Page.new
+        p.ROW = "sponsorship_61066_2009-04-12_07:00"
+        p.sponsorship_id.should == '61066'
+        p.timestamp.should == '2009-04-12_07:00'
+        p.partner_id.should == ''
+      end
+
+      it "should return empty string on partial match in middle" do
+        Page.class_eval do
+          row_key_attributes :regex => /^sponsorship_([a-z0-9]+)_?(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})?_(\d+)$/, :attribute_names => [:sponsorship_id, :timestamp, :partner_id]
+        end
+
+        p = Page.new
+        p.ROW = "sponsorship_61066_166"
+        p.sponsorship_id.should == '61066'
+        p.timestamp.should == ''
+        p.partner_id.should == '166'
+      end
+
+      it "should return empty string on nil ROW key" do
+        Page.class_eval do
+          row_key_attributes :regex => /will_not_match/, :attribute_names => [:foo]
+        end
+
+        p = Page.new
+        p.ROW.should be_nil
+        p.foo.should == ''
+      end
+    end
   end
 end
 
