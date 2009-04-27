@@ -486,13 +486,13 @@ module ActiveRecord
       attr_accessor :row_key_attributes
       def row_key_attributes(*attrs)
         symbolized_attrs = attrs.first.symbolize_keys
-        @@row_key_attributes_regex = symbolized_attrs[:regex]
-        @@row_key_attributes_names = symbolized_attrs[:attribute_names]
+        regex = symbolized_attrs[:regex]
+        names = symbolized_attrs[:attribute_names]
 
-        @@row_key_attributes_names.each_with_index do |attribute_name, i|
+        names.each_with_index do |attribute_name, i|
           self.class_eval %{
             def #{attribute_name}
-              matches = self.ROW.to_s.match(@@row_key_attributes_regex)
+              matches = self.ROW.to_s.match(#{regex.to_s.inspect})
               matches ? (matches[#{i + 1}] || '') : ''
             end
           } 
