@@ -47,6 +47,24 @@ module ActiveRecord
       self.attributes[self.class.primary_key]
     end
 
+    # Allows the save operation to be performed with a specific
+    # mutator.  By default, a new mutator is opened, flushed and closed for
+    # each save operation.  Write-heavy application may wish to manually
+    # manage mutator flushes (which happens when the mutator is closed) at 
+    # the application-layer in order to increase write throughput.
+    #
+    #   m = Page.open_mutator
+    #
+    #   p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
+    #   p1.save_with_mutator!(m)
+    #   p2 = Page.new({:ROW => 'created_with_mutator_2', :url => 'url_2'})
+    #   p2.save_with_mutator!(m)
+    #
+    #   Page.close_mutator(m)
+    # 
+    # Future versions of hypertable will provide a mutator that automatically
+    # periodically flushes.  This feature is expected by Summary 2009.  At
+    # that time, manually managing the mutator at the 
     def save_with_mutator(mutator)
       create_or_update_with_mutator(mutator)
     end
@@ -61,6 +79,8 @@ module ActiveRecord
       result != false
     end
 
+    # Destroy an object.  Since Hypertable does not have foreign keys,
+    # association cells must be removed manually.
     def destroy
       # check for associations and delete association cells as necessary
       for reflection_key in self.class.reflections.keys
@@ -80,6 +100,10 @@ module ActiveRecord
       self.class.connection.delete_rows(self.class.table_name, [self.ROW])
     end
 
+    # Casts the attribute to an integer before performing the increment.  This
+    # is necessary because Hypertable only supports integer types at the
+    # moment.  The cast has the effect of initializing nil values (and most
+    # string values) to zero.
     def increment(attribute, by=1)
       self[attribute] = self[attribute].to_i
       self[attribute] += by
@@ -100,7 +124,7 @@ module ActiveRecord
     end
 
     # Returns a copy of the attributes hash where all the values have been
-    # safely quoted for insertion.  Translated qualified columns from a Hash
+    # safely quoted for insertion.  Translates qualified columns from a Hash
     # value in Ruby to a flat list of attributes.
     #
     # => {
@@ -210,6 +234,9 @@ module ActiveRecord
         end
       end
 
+      # Converts incoming finder options into a scan spec.  A scan spec
+      # is an object used to describe query parameters (columns to retrieve,
+      # number of rows to retrieve, row key ranges) for Hypertable queries.
       def find_to_scan_spec(*args)
         options = args.extract_options!
         options[:scan_spec] = true
@@ -217,6 +244,18 @@ module ActiveRecord
         find(*args)
       end
 
+      # Returns a scanner object that allows you to iterate over the 
+      # result set using the lower-level Thrift client APIs methods that
+      # require a scanner object. e.g.,
+      #
+      # Page.find_with_scanner(:all, :limit => 1) do |scanner|
+      #   Page.each_cell_as_arrays(scanner) do |cell|
+      #     ...
+      #   end
+      # end
+      #
+      # See the Thrift Client API documentation for more detail.
+      # http://hypertable.org/thrift-api-ref/index.html
       def find_with_scanner(*args, &block)
         scan_spec = find_to_scan_spec(*args)
         with_scanner(scan_spec, &block)
@@ -266,16 +305,8 @@ module ActiveRecord
         end
       end
 
-      def find_initial(options)
-        options.update(:limit => 1)
-
-        if options[:scan_spec]
-          find_by_options(options)
-        else
-          find_by_options(options).first
-        end
-      end
-
+      # Each hypertable query requires some default options (e.g., table name)
+      # that are set here if not specified in the query.
       def set_default_options(options)
         options[:table_name] ||= table_name
         options[:columns] ||= columns
@@ -286,6 +317,18 @@ module ActiveRecord
         }
       end
 
+      # Return the first record that matches the finder options.
+      def find_initial(options)
+        options.update(:limit => 1)
+
+        if options[:scan_spec]
+          find_by_options(options)
+        else
+          find_by_options(options).first
+        end
+      end
+
+      # Return an array of records matching the finder options.
       def find_by_options(options)
         set_default_options(options)
 
@@ -317,6 +360,9 @@ module ActiveRecord
         convert_cells_to_instantiated_rows(cells)
       end
 
+      # Converts cells that come back from Hypertable into hashes.  Each
+      # hash represents a separate record (where each cell that has the same
+      # row key is considered one record).
       def convert_cells_to_hashes(cells)
         rows = []
         current_row = {}
@@ -368,6 +414,7 @@ module ActiveRecord
         convert_cells_to_hashes(cells).map{|row| instantiate(row)}
       end
 
+      # Return the records that match a specific HQL query.
       def find_by_hql(hql)
         hql_result = connection.execute(hql)
         cells_in_native_array_format = hql_result.cells.map do |c| 
@@ -377,6 +424,7 @@ module ActiveRecord
       end
       alias :find_by_sql :find_by_hql
 
+      # Return multiple records by row keys.
       def find_from_ids(ids, options)
         expects_array = ids.first.kind_of?(Array)
         return ids.first if expects_array && ids.first.empty?
@@ -393,6 +441,7 @@ module ActiveRecord
         end
       end
 
+      # Return a single record identified by a row key.
       def find_one(id, options)
         return nil if id.blank?
 

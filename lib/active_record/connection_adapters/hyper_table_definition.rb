@@ -1,3 +1,7 @@
+# HyperTableDefinition is a subclass of TableDefinition that provides 
+# support for Hypertable-specific features (e.g, max_versions) to
+# Rails migrations.
+
 module ActiveRecord
   module ConnectionAdapters #:nodoc:
     class HyperColumnDefinition < Struct.new(:base, :name, :type, :limit, :max_versions, :options) #:nodoc:

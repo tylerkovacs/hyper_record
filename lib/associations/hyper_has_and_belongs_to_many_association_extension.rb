@@ -1,3 +1,28 @@
+# Since Hypertable does not support join within queries, the association
+# information is written to each table using qualified columns instead of
+# using a separate JOIN table (as is the case for has_and_belongs_to_many
+# associations in a regular RDBMS).
+#
+# For instance, assume that you have two models (Book and Author) in a 
+# has_and_belongs_to_many association. The HABTM association in a traditional
+# RDBMS requires a join table (authors_books) to record the associations
+# between objects. In Hypertable, instead of using a separate join table, 
+# each table has a column dedicated to recording the associations. 
+# Specifically, the books table has an author_id column and the authors 
+# table has a book_id column. 
+#
+# Column qualifiers are used so we can record as many associated objects are 
+# necessary. If an Author with the row key charles_dickens is added to a 
+# Book with the row key tale_of_two_cities, then a cell called 
+# author_id:charles_dickens is added to the Book object and a cell 
+# called book_id:tale_of_two_cities is added to the Author object. The 
+# value of the cells is inconsequential - their presence alone indicates 
+# an association between the objects. 
+#
+# When an object in an HABTM association is destroyed, the corresponding 
+# entries in the associated table are removed (warning: don't use delete 
+# because it will leave behind stale association information)
+
 module ActiveRecord
   module Associations
     module HyperHasAndBelongsToManyAssociationExtension
@@ -26,6 +51,7 @@ module ActiveRecord
         end
       end
 
+      # Record the association in the assocation columns.
       def insert_record_with_hypertable(record, force=true)
         if @reflection.klass <= ActiveRecord::HyperBase
           @owner.send(@reflection.association_foreign_key)[record.ROW] = 1
@@ -37,6 +63,7 @@ module ActiveRecord
         end
       end
 
+      # Remove the association from the assocation columns.
       def delete_records_with_hypertable(records)
         if @reflection.klass <= ActiveRecord::HyperBase
           cells_to_delete_by_table = Hash.new{|h,k| h[k] = []}

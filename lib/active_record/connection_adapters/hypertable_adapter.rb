@@ -1,3 +1,19 @@
+# For each supported data store, ActiveRecord has an adapter that implements 
+# functionality specific to that store as well as providing metadata for 
+# data held within the store. Features implemented by adapters typically 
+# include connection handling, listings metadata (tables and schema), 
+# statement execution (selects, writes, etc.), latency measurement, fixture 
+# handling.
+#
+# This file implements the adapter for Hypertable used by ActiveRecord
+# (HyperRecord).  The adapter communicates with Hypertable using the
+# Thrift client API documented here:
+# http://hypertable.org/thrift-api-ref/index.html
+#
+# Refer to the main hypertable site (http://hypertable.org/) for additional 
+# information and documentation (http://hypertable.org/documentation.html)
+# on Hypertable and the Thrift client API.
+
 unless defined?(ActiveRecord::ConnectionAdapters::AbstractAdapter)
   # running into some situations where rails has already loaded this, without
   # require realizing it, and loading again is unsafe (alias_method_chain is a
@@ -9,14 +25,26 @@ require 'active_record/connection_adapters/hyper_table_definition'
 
 module ActiveRecord
   class Base
+    # Include the thrift driver if one hasn't already been loaded
     def self.require_hypertable_thrift_client
-      # Include the thrift driver if one hasn't already been loaded
       unless defined? Hypertable::ThriftClient
         gem 'hypertable-thrift-client'
         require_dependency 'thrift_client'
       end
     end
 
+    # Establishes a connection to the Thrift Broker (which brokers requests
+    # to Hypertable itself.  The connection details must appear in 
+    # config/database.yml.  e.g.,
+    # hypertable_dev:
+    #  host: localhost
+    #  port: 38088
+    #  timeout: 20000
+    #
+    # Options:
+    # * <tt>:host</tt> - Defaults to localhost
+    # * <tt>:port</tt> - Defaults to 38088
+    # * <tt>:timeout</tt> - Timeout for queries in milliseconds. Defaults to 20000
     def self.hypertable_connection(config)
       config = config.symbolize_keys
       require_hypertable_thrift_client
@@ -36,6 +64,8 @@ module ActiveRecord
 
   module ConnectionAdapters
     class HypertableAdapter < AbstractAdapter
+      # Following cattr_accessors are used to record and access query 
+      # performance statistics.
       @@read_latency = 0.0
       @@write_latency = 0.0
       @@cells_read = 0
@@ -56,14 +86,18 @@ module ActiveRecord
           config[:timeout])
       end
 
+      # Return the current set of performance statistics.  The application
+      # can retrieve (and reset) these statistics after every query or
+      # request for its own logging purposes.  
+      def self.get_timing
+        [@@read_latency, @@write_latency, @@cells_read]
+      end
+
+      # Reset performance metrics.
       def self.reset_timing
         @@read_latency = 0.0
         @@write_latency = 0.0
         @@cells_read = 0
-      end
-
-      def self.get_timing
-        [@@read_latency, @@write_latency, @@cells_read]
       end
 
       def adapter_name
@@ -74,6 +108,9 @@ module ActiveRecord
         true
       end
 
+      # Hypertable only supports string types at the moment, so treat
+      # all values as strings and leave it to the application to handle
+      # types.
       def native_database_types
         {
           :string      => { :name => "varchar", :limit => 255 }
@@ -92,6 +129,20 @@ module ActiveRecord
         end
       end
 
+      # Execute an HQL query against Hypertable and return the native 
+      # HqlResult object that comes back from the Thrift client API.
+      def execute(hql, name=nil)
+        log(hql, name) {
+          retry_on_connection_error { @connection.hql_query(hql) }
+        }
+      end
+
+      # Execute a query against Hypertable and return the matching cells.
+      # The query parameters are denoted in an options hash, which is 
+      # converted to a "scan spec" by convert_options_to_scan_spec.
+      # A "scan spec" is the mechanism used to specify query parameters
+      # (e.g., the columns to retrieve, the number of rows to retrieve, etc.)
+      # to Hypertable.
       def execute_with_options(options)
         scan_spec = convert_options_to_scan_spec(options)
         t1 = Time.now
@@ -112,6 +163,93 @@ module ActiveRecord
         @@cells_read += cells.length
 
         cells
+      end
+
+      # Convert an options hash to a scan spec.  A scan spec is native 
+      # representation of the query parameters that must be sent to 
+      # Hypertable.
+      # http://hypertable.org/thrift-api-ref/Client.html#Struct_ScanSpec
+      def convert_options_to_scan_spec(options={})
+        sanitize_conditions(options)
+
+        # Rows can be specified using a number of different options:
+        # :row_keys => [row_key_1, row_key_2, ...]
+        # :start_row and :end_row
+        # :row_intervals => [[start_1, end_1], [start_2, end_2]]
+        row_intervals = []
+
+        options[:start_inclusive] = options.has_key?(:start_inclusive) ? options[:start_inclusive] : true
+        options[:end_inclusive] = options.has_key?(:end_inclusive) ? options[:end_inclusive] : true
+
+        if options[:row_keys]
+          options[:row_keys].flatten.each do |rk|
+            row_intervals << [rk, rk]
+          end
+        elsif options[:row_intervals]
+          options[:row_intervals].each do |ri|
+            row_intervals << [ri.first, ri.last]
+          end
+        elsif options[:start_row]
+          raise "missing :end_row" if !options[:end_row]
+          row_intervals << [options[:start_row], options[:end_row]]
+        end
+
+        # Add each row interval to the scan spec
+        options[:row_intervals] = row_intervals.map do |row_interval|
+          ri = Hypertable::ThriftGen::RowInterval.new
+          ri.start_row = row_interval.first
+          ri.start_inclusive = options[:start_inclusive]
+          ri.end_row = row_interval.last
+          ri.end_inclusive = options[:end_inclusive]
+          ri
+        end
+
+        scan_spec = Hypertable::ThriftGen::ScanSpec.new
+
+        # Hypertable can store multiple revisions for each cell but this
+        # feature does not map into an ORM very well.  By default, just 
+        # retrieve the latest revision of each cell.  Since this is most 
+        # common config when using HyperRecord, tables should be defined 
+        # with MAX_VERSIONS=1 at creation time to save space and reduce 
+        # query time.
+        options[:revs] ||= 1
+
+        # Most of the time, we're not interested in cells that have been 
+        # marked deleted but have not actually been deleted yet.
+        options[:return_deletes] ||= false
+
+        for key in options.keys
+          case key.to_sym
+            when :row_intervals
+              scan_spec.row_intervals = options[key]
+            when :cell_intervals
+              scan_spec.cell_intervals = options[key]
+            when :start_time
+              scan_spec.start_time = options[key]
+            when :end_time
+              scan_spec.end_time = options[key]
+            when :limit
+              scan_spec.row_limit = options[key]
+            when :revs
+              scan_spec.revs = options[key]
+            when :return_deletes
+              scan_spec.return_deletes = options[key]
+            when :select
+              # Columns listed here can only be column families (not
+              # column qualifiers) at this time.
+              requested_columns = options[key].is_a?(String) ? options[key].split(',').map{|s| s.strip} : options[key]
+              scan_spec.columns = requested_columns.map do |column|
+                status, family, qualifier = is_qualified_column_name?(column)
+                family
+              end.uniq
+            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly, :scan_spec
+              # ignore
+            else
+              raise "Unrecognized scan spec option: #{key}"
+          end
+        end
+
+        scan_spec
       end
 
       # Exceptions generated by Thrift IDL do not set a message.
@@ -156,98 +294,21 @@ module ActiveRecord
         end
       end
 
-      def convert_options_to_scan_spec(options={})
-        sanitize_conditions(options)
-
-        # Rows can be specified using a number of different options:
-        # :row_keys => [row_key_1, row_key_2, ...]
-        # :start_row and :end_row
-        # :row_intervals => [[start_1, end_1], [start_2, end_2]]
-        row_intervals = []
-
-        options[:start_inclusive] = options.has_key?(:start_inclusive) ? options[:start_inclusive] : true
-        options[:end_inclusive] = options.has_key?(:end_inclusive) ? options[:end_inclusive] : true
-
-        if options[:row_keys]
-          options[:row_keys].flatten.each do |rk|
-            row_intervals << [rk, rk]
-          end
-        elsif options[:row_intervals]
-          options[:row_intervals].each do |ri|
-            row_intervals << [ri.first, ri.last]
-          end
-        elsif options[:start_row]
-          raise "missing :end_row" if !options[:end_row]
-          row_intervals << [options[:start_row], options[:end_row]]
-        end
-
-        options[:row_intervals] = row_intervals.map do |row_interval|
-          ri = Hypertable::ThriftGen::RowInterval.new
-          ri.start_row = row_interval.first
-          ri.start_inclusive = options[:start_inclusive]
-          ri.end_row = row_interval.last
-          ri.end_inclusive = options[:end_inclusive]
-          ri
-        end
-
-        scan_spec = Hypertable::ThriftGen::ScanSpec.new
-        options[:revs] ||= 1
-        options[:return_deletes] ||= false
-
-        for key in options.keys
-          case key.to_sym
-            when :row_intervals
-              scan_spec.row_intervals = options[key]
-            when :cell_intervals
-              scan_spec.cell_intervals = options[key]
-            when :start_time
-              scan_spec.start_time = options[key]
-            when :end_time
-              scan_spec.end_time = options[key]
-            when :limit
-              scan_spec.row_limit = options[key]
-            when :revs
-              scan_spec.revs = options[key]
-            when :return_deletes
-              scan_spec.return_deletes = options[key]
-            when :select
-              # Columns listed here can be column families only (not
-              # column qualifiers) at this time.
-              requested_columns = options[key].is_a?(String) ? options[key].split(',').map{|s| s.strip} : options[key]
-              scan_spec.columns = requested_columns.map do |column|
-                status, family, qualifier = is_qualified_column_name?(column)
-                family
-              end.uniq
-            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly, :scan_spec
-              # ignore
-            else
-              raise "Unrecognized scan spec option: #{key}"
-          end
-        end
-
-        scan_spec
-      end
-
-      def execute(hql, name=nil)
-        log(hql, name) {
-          retry_on_connection_error { @connection.hql_query(hql) }
-        }
-      end
-
       # Column Operations
 
-      # Returns array of column objects for table associated with this class.
-      # Hypertable allows columns to include dashes in the name.  This doesn't
-      # play well with Ruby (can't have dashes in method names), so we must
-      # maintain a mapping of original column names to Ruby-safe names.
-      def columns(table_name, name = nil)#:nodoc:
+      # Returns array of column objects for the table associated with this 
+      # class.  Hypertable allows columns to include dashes in the name.  
+      # This doesn't play well with Ruby (can't have dashes in method names), 
+      # so we maintain a mapping of original column names to Ruby-safe 
+      # names.
+      def columns(table_name, name = nil)
         # Each table always has a row key called 'ROW'
         columns = [
           Column.new('ROW', '')
         ]
         schema = describe_table(table_name)
         doc = REXML::Document.new(schema)
-        column_families = doc.elements['Schema/AccessGroup[@name="default"]'].elements.to_a
+        column_families = doc.each_element('Schema/AccessGroup/ColumnFamily') { |cf| cf }
 
         @hypertable_column_names[table_name] ||= {}
         for cf in column_families
@@ -306,6 +367,8 @@ module ActiveRecord
         raise "change_column operation not supported by Hypertable."
       end
 
+      # Translate "sexy" ActiveRecord::Migration syntax to an HQL
+      # CREATE TABLE statement.
       def create_table_hql(table_name, options={})
         table_definition = HyperTableDefinition.new(self)
 
@@ -396,18 +459,41 @@ module ActiveRecord
         n
       end
 
+      # Return an XML document describing the table named in the first
+      # argument.  Output is equivalent to that returned by the DESCRIBE
+      # TABLE command available in the Hypertable CLI.
+      # <Schema generation="2">
+      #   <AccessGroup name="default">
+      #     <ColumnFamily id="1">
+      #       <Generation>1</Generation>
+      #       <Name>date</Name>
+      #       <deleted>false</deleted>
+      #     </ColumnFamily>
+      #   </AccessGroup>
+      # </Schema>
       def describe_table(table_name)
         retry_on_connection_error {
           @connection.get_schema(table_name)
         }
       end
 
+      # Returns an array of tables available in the current Hypertable 
+      # instance.
       def tables(name=nil)
         retry_on_connection_error {
           @connection.get_tables
         }
       end
 
+      # Write an array of cells to the named table.  By default, write_cells
+      # will open and close a mutator for this operation.  Closing the
+      # mutator flushes the data, which guarantees is it is stored in 
+      # Hypertable before the call returns.  This also slows down the 
+      # operation, so if you're doing lots of writes and want to manage
+      # mutator flushes at the application layer then you can pass in a
+      # mutator as argument.  Mutators can be created with the open_mutator
+      # method.  In the near future (Summer 2009), Hypertable will provide
+      # a periodic mutator that automatically flushes at specific intervals.
       def write_cells(table_name, cells, mutator=nil)
         return if cells.blank?
 
@@ -425,9 +511,10 @@ module ActiveRecord
         }
       end
 
-      # Cell passed in as [row_key, column_name, value]
-      # return a Hypertable::ThriftGen::Cell object which is required
-      # if the cell requires a flag on write (delete operations)
+      # Return a Hypertable::ThriftGen::Cell object from a cell passed in
+      # as an array of format: [row_key, column_name, value]
+      # Hypertable::ThriftGen::Cell objects are required when setting a flag
+      # on write - used by special operations (e.g,. delete )
       def thrift_cell_from_native_array(array)
         cell = Hypertable::ThriftGen::Cell.new
         cell.row_key = array[0]
@@ -438,7 +525,10 @@ module ActiveRecord
         cell
       end
 
-      # Create native array format for cell.
+      # Create native array format for cell.  Most HyperRecord operations
+      # deal with cells in native array format since operations on an
+      # array are much faster than operations on Hypertable::ThriftGen::Cell 
+      # objects.
       # ["row_key", "column_family", "column_qualifier", "value"],
       def cell_native_array(row_key, column_family, column_qualifier, value=nil, timestamp=nil)
         [
@@ -449,6 +539,7 @@ module ActiveRecord
         ]
       end
 
+      # Delete cells from a table.
       def delete_cells(table_name, cells)
         t1 = Time.now
 
@@ -466,6 +557,7 @@ module ActiveRecord
         @@write_latency += Time.now - t1
       end
 
+      # Delete rows from a table.
       def delete_rows(table_name, row_keys)
         t1 = Time.now
         cells = row_keys.map do |row_key|
@@ -484,6 +576,7 @@ module ActiveRecord
         @@write_latency += Time.now - t1
       end
 
+      # Insert a test fixture into a table.
       def insert_fixture(fixture, table_name)
         fixture_hash = fixture.to_hash
         timestamp = fixture_hash.delete('timestamp')
@@ -541,13 +634,6 @@ module ActiveRecord
       def each_row_as_arrays(scanner, &block)
         @connection.each_row_as_arrays(scanner, &block)
       end
-
-      private
-
-        def select(hql, name=nil)
-          # TODO
-          raise "not yet implemented"
-        end
     end
   end
 end
