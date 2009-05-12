@@ -1,6 +1,8 @@
 0.2.7 (not yet released)
 - new row_key_attributes method: allows parts of the row key to be extracted
   into attributes on the instantiated object
+- retry block of write_cells was occasionally attemption to write to a
+  closed mutator (causing an exception)
 
 0.2.6 2009/04/20
 - fix bug interacting with new open_scanner API

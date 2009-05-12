@@ -17,6 +17,7 @@ Gem::Specification.new do |s|
     "LICENSE",
     "Rakefile",
     "VERSION.yml",
+    "hyper_record.gemspec",
     "lib/active_record/connection_adapters/hyper_table_definition.rb",
     "lib/active_record/connection_adapters/hypertable_adapter.rb",
     "lib/active_record/connection_adapters/qualified_column.rb",

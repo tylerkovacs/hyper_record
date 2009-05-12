@@ -505,7 +505,10 @@ module ActiveRecord
             mutator ||= @connection.open_mutator(table_name)
             @connection.set_cells_as_arrays(mutator, cells)
           ensure
-            @connection.close_mutator(mutator, true) if local_mutator_created
+            if local_mutator_created
+              @connection.close_mutator(mutator, true)
+              mutator = nil
+            end
             @@write_latency += Time.now - t1
           end
         }
