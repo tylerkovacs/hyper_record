@@ -598,7 +598,11 @@ module ActiveRecord
         @connection.open_mutator(table_name, flags, flush_interval)
       end
 
-      def close_mutator(mutator, flush=1)
+      # Flush is always called in a mutator's destructor due to recent
+      # no_log_sync changes.  Adding an explicit flush here just adds
+      # one round trip for an extra flush call, so change the default to
+      # flush=0.  Consider removing this argument and always sending 0.
+      def close_mutator(mutator, flush=0)
         @connection.close_mutator(mutator, flush)
       end
 

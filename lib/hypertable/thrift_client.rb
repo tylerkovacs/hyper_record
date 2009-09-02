@@ -41,7 +41,7 @@ module Hypertable
       begin
         yield mutator
       ensure
-        close_mutator(mutator, 1)
+        close_mutator(mutator, 0)
       end
     end
 

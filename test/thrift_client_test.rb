@@ -220,7 +220,7 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "insert a cell using set_cell" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        mutator = client.open_mutator('thrift_test')
+        mutator = client.open_mutator('thrift_test', 0, 0)
         cell1 = Hypertable::ThriftGen::Cell.new
         cell1.row_key = 'k1'
         cell1.column_family = 'col'
@@ -270,7 +270,7 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "insert cells using set_cells" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        mutator = client.open_mutator('thrift_test')
+        mutator = client.open_mutator('thrift_test', 0, 0)
         cell1 = Hypertable::ThriftGen::Cell.new
         cell1.row_key = 'k1'
         cell1.column_family = 'col'
