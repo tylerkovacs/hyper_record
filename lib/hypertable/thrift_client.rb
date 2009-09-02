@@ -67,7 +67,7 @@ module Hypertable
     def each_row(scanner)
       row = next_row(scanner);
 
-      while row
+      while (row && row.size > 0)
         yield row
         row = next_row(scanner);
       end
@@ -76,7 +76,7 @@ module Hypertable
     def each_row_as_arrays(scanner)
       row = next_row_as_arrays(scanner);
 
-      while row
+      while (row && row.size > 0)
         yield row
         row = next_row_as_arrays(scanner);
       end
