@@ -427,7 +427,7 @@ module ActiveRecord
         m = Page.open_mutator
         p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
         p1.save_with_mutator!(m)
-        Page.close_mutator(m, false)
+        Page.close_mutator(m, 0)
 
         lambda {
           Page.find('created_with_mutator_1')
@@ -439,7 +439,7 @@ module ActiveRecord
         p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
         p1.save_with_mutator!(m)
         Page.flush_mutator(m)
-        Page.close_mutator(m, false)
+        Page.close_mutator(m, 0)
 
         new_page_1 = Page.find('created_with_mutator_1')
         new_page_1.url.should == 'url_1'

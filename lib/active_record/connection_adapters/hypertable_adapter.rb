@@ -502,11 +502,11 @@ module ActiveRecord
 
           begin
             t1 = Time.now
-            mutator ||= @connection.open_mutator(table_name)
+            mutator ||= @connection.open_mutator(table_name, 0, 0)
             @connection.set_cells_as_arrays(mutator, cells)
           ensure
             if local_mutator_created
-              @connection.close_mutator(mutator, true)
+              @connection.close_mutator(mutator, 1)
               mutator = nil
             end
             @@write_latency += Time.now - t1
@@ -594,11 +594,11 @@ module ActiveRecord
 
       # Mutator methods
 
-      def open_mutator(table_name)
-        @connection.open_mutator(table_name)
+      def open_mutator(table_name, flags=0, flush_interval=0)
+        @connection.open_mutator(table_name, flags, flush_interval)
       end
 
-      def close_mutator(mutator, flush=true)
+      def close_mutator(mutator, flush=1)
         @connection.close_mutator(mutator, flush)
       end
 

@@ -12,7 +12,14 @@ module Hypertable
           DELETE_CF = 1
           DELETE_CELL = 2
           INSERT = 255
+          VALUE_MAP = {0 => "DELETE_ROW", 1 => "DELETE_CF", 2 => "DELETE_CELL", 255 => "INSERT"}
           VALID_VALUES = Set.new([DELETE_ROW, DELETE_CF, DELETE_CELL, INSERT]).freeze
+        end
+
+        module MutatorFlag
+          NO_LOG_SYNC = 1
+          VALUE_MAP = {1 => "NO_LOG_SYNC"}
+          VALID_VALUES = Set.new([NO_LOG_SYNC]).freeze
         end
 
         # Specifies a range of rows
@@ -219,7 +226,7 @@ module Hypertable
         # 
         # <dl>
         #   <dt>code</dt><dd>Internal use (defined in src/cc/Common/Error.h)</dd>
-        #   <dt>what</dt><dd>A message about the exception</dd>
+        #   <dt>message</dt><dd>A message about the exception</dd>
         # </dl>
         # 
         # Note: some languages (like php) don't have adequate namespace, so Exception
@@ -227,12 +234,12 @@ module Hypertable
         class ClientException < ::Thrift::Exception
           include ::Thrift::Struct
           CODE = 1
-          WHAT = 2
+          MESSAGE = 2
 
-          ::Thrift::Struct.field_accessor self, :code, :what
+          ::Thrift::Struct.field_accessor self, :code, :message
           FIELDS = {
             CODE => {:type => ::Thrift::Types::I32, :name => 'code'},
-            WHAT => {:type => ::Thrift::Types::STRING, :name => 'what'}
+            MESSAGE => {:type => ::Thrift::Types::STRING, :name => 'message'}
           }
 
           def struct_fields; FIELDS; end

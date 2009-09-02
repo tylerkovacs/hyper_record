@@ -551,11 +551,11 @@ module ActiveRecord
       # Mutator methods - passed through straight to the Hypertable Adapter.
 
       # Return an open mutator on this table.
-      def open_mutator
-        self.connection.open_mutator(table_name)
+      def open_mutator(flags=0, flush_interval=0)
+        self.connection.open_mutator(table_name, flags, flush_interval)
       end
 
-      def close_mutator(mutator, flush=true)
+      def close_mutator(mutator, flush=1)
         self.connection.close_mutator(mutator, flush)
       end
 

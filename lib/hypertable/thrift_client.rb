@@ -36,8 +36,8 @@ module Hypertable
       end
     end
 
-    def with_mutator(table)
-      mutator = open_mutator(table);
+    def with_mutator(table, flags=0, flush_interval=0)
+      mutator = open_mutator(table, flags, flush_interval);
       begin
         yield mutator
       ensure

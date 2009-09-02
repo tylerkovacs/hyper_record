@@ -3,6 +3,8 @@
   into attributes on the instantiated object
 - retry block of write_cells was occasionally attemption to write to a
   closed mutator (causing an exception)
+- support mutators with auto-flush
+  - update Thrift-generated ruby code to code supplied in Hypertable 0.9.2.6
 
 0.2.6 2009/04/20
 - fix bug interacting with new open_scanner API
