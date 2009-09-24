@@ -312,6 +312,11 @@ module ActiveRecord
 
         @hypertable_column_names[table_name] ||= {}
         for cf in column_families
+          # Columns are lazily-deleted in Hypertable so still may show up
+          # in describe table output.  Ignore.
+          deleted = cf.elements['deleted'].text
+          next if deleted == 'true'
+
           column_name = cf.elements['Name'].text
           rubified_name = rubify_column_name(column_name)
           @hypertable_column_names[table_name][rubified_name] = column_name

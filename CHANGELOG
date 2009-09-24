@@ -8,6 +8,9 @@
 - some exceptions in write_cells method were being masked by exceptions in 
   ensure block, making it difficult to identify root cause of problem
 - fix potential infinite loop in each_row
+- handle deleted columns in schema operations
+  - hypertable deletes columns lazily, so they will still show up in the output
+    from schema commands.
 
 0.2.6 2009/04/20
 - fix bug interacting with new open_scanner API
