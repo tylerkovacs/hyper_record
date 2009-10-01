@@ -1,4 +1,4 @@
-0.2.7 (not yet released)
+0.2.7
 - new row_key_attributes method: allows parts of the row key to be extracted
   into attributes on the instantiated object
 - retry block of write_cells was occasionally attemption to write to a
