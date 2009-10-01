@@ -32,6 +32,7 @@ Gem::Specification.new do |s|
     "lib/hypertable/gen-rb/hql_service.rb",
     "lib/hypertable/gen-rb/hql_types.rb",
     "lib/hypertable/thrift_client.rb",
+    "lib/hypertable/thrift_transport_monkey_patch.rb",
     "spec/fixtures/pages.yml",
     "spec/fixtures/qualified_pages.yml",
     "spec/lib/associations_spec.rb",
