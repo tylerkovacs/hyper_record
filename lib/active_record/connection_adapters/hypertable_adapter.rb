@@ -459,6 +459,7 @@ module ActiveRecord
       end
 
       def hypertable_column_name(name, table_name, declared_columns_only=false)
+        columns(table_name) if @hypertable_column_names[table_name].blank?
         n = @hypertable_column_names[table_name][name]
         n ||= name if !declared_columns_only
         n
