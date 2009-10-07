@@ -17,6 +17,8 @@ end
 class Page < ActiveRecord::HyperBase
   self.establish_connection(:hypertable)
 
+  # mutator_options :persistent => true, :flush_interval => 100
+
   def self.create_table
     hql = "CREATE TABLE #{table_name} (
       'name',

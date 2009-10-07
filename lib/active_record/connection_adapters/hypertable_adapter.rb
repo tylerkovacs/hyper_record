@@ -303,9 +303,8 @@ module ActiveRecord
       # names.
       def columns(table_name, name = nil)
         # Each table always has a row key called 'ROW'
-        columns = [
-          Column.new('ROW', '')
-        ]
+        columns = [ Column.new('ROW', '') ]
+
         schema = describe_table(table_name)
         doc = REXML::Document.new(schema)
         column_families = doc.each_element('Schema/AccessGroup/ColumnFamily') { |cf| cf }
@@ -459,10 +458,20 @@ module ActiveRecord
       end
 
       def hypertable_column_name(name, table_name, declared_columns_only=false)
-        columns(table_name) if @hypertable_column_names[table_name].blank?
-        n = @hypertable_column_names[table_name][name]
-        n ||= name if !declared_columns_only
-        n
+        begin
+          columns(table_name) if @hypertable_column_names[table_name].blank?
+          n = @hypertable_column_names[table_name][name]
+          n ||= name if !declared_columns_only
+          n
+        rescue Exception => err
+          raise [
+            "hypertable_column_name exception",
+            err.message,
+            "table: #{table_name}",
+            "column: #{name}",
+            "@htcn: #{pp @hypertable_column_names}"
+          ].join("\n")
+        end
       end
 
       # Return an XML document describing the table named in the first
@@ -500,7 +509,7 @@ module ActiveRecord
       # mutator as argument.  Mutators can be created with the open_mutator
       # method.  In the near future (Summer 2009), Hypertable will provide
       # a periodic mutator that automatically flushes at specific intervals.
-      def write_cells(table_name, cells, mutator=nil)
+      def write_cells(table_name, cells, mutator=nil, flags=nil, flush_interval=nil)
         return if cells.blank?
 
         retry_on_connection_error {
@@ -508,7 +517,7 @@ module ActiveRecord
 
           begin
             t1 = Time.now
-            mutator ||= open_mutator(table_name)
+            mutator ||= open_mutator(table_name, flags, flush_interval)
             @connection.set_cells_as_arrays(mutator, cells)
           ensure
             if local_mutator_created && mutator

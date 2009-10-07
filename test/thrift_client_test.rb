@@ -235,6 +235,28 @@ class ThriftClientTest < Test::Unit::TestCase
         assert_equal 'v1', query.cells[0].value
       end
     end
+
+    should "work with mutator flush_interval" do
+      Hypertable.with_thrift_client("localhost", 38080) do |client|
+        mutator = client.open_mutator('thrift_test', 0, 500)
+        cell1 = Hypertable::ThriftGen::Cell.new
+        cell1.row_key = 'k1'
+        cell1.column_family = 'col'
+        cell1.value = 'v1'
+        client.set_cell(mutator, cell1)
+
+        query = client.hql_query("SELECT * FROM thrift_test")
+        assert_equal 0, query.cells.length
+
+        sleep 1
+
+        query = client.hql_query("SELECT * FROM thrift_test")
+        assert_equal 1, query.cells.length
+        assert_equal 'k1', query.cells[0].row_key
+        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'v1', query.cells[0].value
+      end
+    end
   end
 
   context "set cells" do

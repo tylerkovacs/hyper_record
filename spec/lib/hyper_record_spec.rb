@@ -446,6 +446,16 @@ module ActiveRecord
         new_page_1 = Page.find('created_with_mutator_1')
         new_page_1.url.should == 'url_1'
       end
+
+      it "should support periodic flushing" do
+        m = Page.open_mutator(0, 500)
+        p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
+        p1.save_with_mutator!(m)
+
+        lambda {p1.reload}.should raise_error(::ActiveRecord::RecordNotFound)
+        sleep 1
+        lambda {p1.reload}.should_not raise_error(::ActiveRecord::RecordNotFound)
+      end
     end
 
     describe HyperBase, '.update' do

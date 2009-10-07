@@ -34,13 +34,13 @@ module ActiveRecord
     end
 
     # Instance Methods
-    def update(mutator=nil)
+    def update(mutator=self.class.mutator)
       write_quoted_attributes(attributes_with_quotes(false, false),
         self.class.table_name, mutator)
       true
     end
 
-    def create(mutator=nil)
+    def create(mutator=self.class.mutator)
       write_quoted_attributes(attributes_with_quotes(false, false), 
         self.class.table_name, mutator)
       @new_record = false
@@ -164,12 +164,12 @@ module ActiveRecord
       cells
     end
 
-    def write_quoted_attributes(quoted_attrs, table=self.class.table_name, mutator=nil)
+    def write_quoted_attributes(quoted_attrs, table=self.class.table_name, mutator=self.class.mutator)
       write_cells(quoted_attributes_to_cells(quoted_attrs, table), table, mutator)
     end
 
     # Write an array of cells to Hypertable
-    def write_cells(cells, table=self.class.table_name, mutator=nil)
+    def write_cells(cells, table=self.class.table_name, mutator=self.class.mutator)
       if HyperBase.log_calls
         msg = [
           "Writing #{cells.length} cells to #{table} table",
@@ -179,7 +179,7 @@ module ActiveRecord
         # puts msg
       end
 
-      connection.write_cells(table, cells, mutator)
+      connection.write_cells(table, cells, mutator, self.class.mutator_flags, self.class.mutator_flush_interval)
     end
 
     # Delete an array of cells from Hypertable
@@ -548,14 +548,26 @@ module ActiveRecord
         end
       end
 
+      attr_accessor :mutator, :mutator_flags, :mutator_flush_interval
+      def mutator_options(*attrs)
+        symbolized_attrs = attrs.first.symbolize_keys
+        @mutator_flags = symbolized_attrs[:flags].to_i
+        @mutator_flush_interval = symbolized_attrs[:flush_interval].to_i
+        if symbolized_attrs[:persistent]
+          @mutator = self.open_mutator(@mutator_flags, @mutator_flush_interval)
+        end
+      end
+
       # Mutator methods - passed through straight to the Hypertable Adapter.
 
       # Return an open mutator on this table.
-      def open_mutator(flags=0, flush_interval=0)
+      def open_mutator(flags=@mutator_flags.to_i, flush_interval=@mutator_flush_interval.to_i)
         self.connection.open_mutator(table_name, flags, flush_interval)
       end
 
-      def close_mutator(mutator, flush=1)
+      # As of Hypertable 0.9.2.5, flush is automatically performed on a
+      # close_mutator call (so flush should default to 0).
+      def close_mutator(mutator, flush=0)
         self.connection.close_mutator(mutator, flush)
       end
 
