@@ -8,6 +8,7 @@ ActiveRecord::Base.configurations['hypertable'] = {
   'host' => 'localhost',
   'port' => '38080'
 }
+ActiveRecord::Base.establish_connection(:hypertable)
 
 class Dummy < ActiveRecord::HyperBase
 end
@@ -47,8 +48,6 @@ class QualifiedPageWithoutExplicitQualifiers < ActiveRecord::HyperBase
     QualifiedPage.create_table
   end
 end
-
-ActiveRecord::Base.connection = Page.connection
 
 Spec::Runner.configure do |config|
   # If you're not using ActiveRecord you should remove these

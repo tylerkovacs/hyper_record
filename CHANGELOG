@@ -1,3 +1,8 @@
+0.2.8 (not yet released)
+- Update tests to be compatible with Rails 2.3.4
+- Update tests to be compatible with RSpec 1.2.8
+
+
 0.2.7
 - new row_key_attributes method: allows parts of the row key to be extracted
   into attributes on the instantiated object
