@@ -423,15 +423,17 @@ module ActiveRecord
         new_page_2.url.should == 'url_2'
       end
 
-      it "should not flush the mutator and not create objects when flush is not requested on close mutator" do
+      it "should still flush the mutator and create objects when flush is not requested on close mutator" do
+        # As of release 0.9.2.5, Hypertable now auto-flushes the 
+        # mutator on close.
+
         m = Page.open_mutator
         p1 = Page.new({:ROW => 'created_with_mutator_1', :url => 'url_1'})
         p1.save_with_mutator!(m)
         Page.close_mutator(m, 0)
 
-        lambda {
-          Page.find('created_with_mutator_1')
-        }.should raise_error(::ActiveRecord::RecordNotFound)
+        page = Page.find('created_with_mutator_1')
+        page.should_not be_nil
       end
 
       it "should support explicit flushing of the mutator" do
