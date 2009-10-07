@@ -1,6 +1,7 @@
 ENV["RAILS_ENV"] = "test"
 require File.expand_path(File.join(File.dirname(__FILE__), "../../../../config/environment"))
 require 'spec'
+require 'spec/autorun' # required rspec 1.2.8?
 require 'spec/rails'
 
 ActiveRecord::Base.configurations['hypertable'] = {
@@ -106,7 +107,7 @@ class Fixtures
 
           all_loaded_fixtures.update(fixtures_map)
 
-          connection.transaction(Thread.current['open_transactions'].to_i == 0) do
+          connection.transaction(:requires_new => true) do
             #fixtures.reverse.each {|fixture| fixture.delete_existing_fixtures}
             fixtures.each {|fixture| fixture.insert_fixtures}
 
