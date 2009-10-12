@@ -357,13 +357,13 @@ module ActiveRecord
           # puts msg
         end
 
-        convert_cells_to_instantiated_rows(cells)
+        convert_cells_to_instantiated_rows(cells, options)
       end
 
       # Converts cells that come back from Hypertable into hashes.  Each
       # hash represents a separate record (where each cell that has the same
       # row key is considered one record).
-      def convert_cells_to_hashes(cells)
+      def convert_cells_to_hashes(cells, options={})
         rows = []
         current_row = {}
 
@@ -392,7 +392,10 @@ module ActiveRecord
             # Make sure that the resulting object has attributes for all
             # columns - even ones that aren't in the response (due to limited
             # select)
+
             for col in column_families_without_row_key
+              next if options[:instantiate_only_requested_columns] && !options[:select].include?(col.name)
+
               if !current_row.has_key?(col.name)
                 if col.is_a?(ActiveRecord::ConnectionAdapters::QualifiedColumn)
                   current_row[col.name] = {}
@@ -410,8 +413,8 @@ module ActiveRecord
         rows
       end
 
-      def convert_cells_to_instantiated_rows(cells)
-        convert_cells_to_hashes(cells).map{|row| instantiate(row)}
+      def convert_cells_to_instantiated_rows(cells, options={})
+        convert_cells_to_hashes(cells, options).map{|row| instantiate(row)}
       end
 
       # Return the records that match a specific HQL query.

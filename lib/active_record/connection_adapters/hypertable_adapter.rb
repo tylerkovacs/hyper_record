@@ -251,7 +251,7 @@ module ActiveRecord
                 status, family, qualifier = is_qualified_column_name?(column)
                 family
               end.uniq
-            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly, :scan_spec
+            when :table_name, :start_row, :end_row, :start_inclusive, :end_inclusive, :select, :columns, :row_keys, :conditions, :include, :readonly, :scan_spec, :instantiate_only_requested_columns
               # ignore
             else
               raise "Unrecognized scan spec option: #{key}"

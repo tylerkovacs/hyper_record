@@ -1,4 +1,7 @@
 0.2.8 (not yet released)
+- new :instantiate_only_requested_columns finder option that does not
+  instantiate object columns if they were not included in the :select
+  - makes large queries against large tables memory-friendly
 - :select option allows column families to be identified using symbols
 - tests and groundwork for mutator flush_interval (asynchronous writes)
   - requires Hypertable 0.9.2.7

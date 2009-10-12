@@ -280,6 +280,19 @@ module ActiveRecord
         qp.misc.should == {}
       end
 
+      it "should only instantiate requested columns when option set" do
+        p = Page.find("page_1")
+        p.name.should == "LOLcats and more"
+        p.url.should == "http://www.icanhascheezburger.com"
+
+        p = Page.find("page_1", 
+          :select => 'name', 
+          :instantiate_only_requested_columns => true)
+
+        p.name.should == "LOLcats and more"
+        lambda {p.url}.should raise_error(::ActiveRecord::MissingAttributeError)
+      end
+
       it "should allow user to specify ROW key as part of initialize attributes" do
         p = Page.new({:ROW => 'row key'})
         p.ROW.should == 'row key'
