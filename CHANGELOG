@@ -1,4 +1,6 @@
 0.2.8 (not yet released)
+- cache row_key_attributes results so that regex is not constantly
+  reevaluated for same value
 - new :instantiate_only_requested_columns finder option that does not
   instantiate object columns if they were not included in the :select
   - makes large queries against large tables memory-friendly

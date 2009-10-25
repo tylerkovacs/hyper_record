@@ -540,12 +540,22 @@ module ActiveRecord
         symbolized_attrs = attrs.first.symbolize_keys
         regex = symbolized_attrs[:regex]
         names = symbolized_attrs[:attribute_names]
-
-        names.each_with_index do |attribute_name, i|
+        
+        names.each_with_index do |name, i|
           self.class_eval %{
-            def #{attribute_name}
-              matches = self.ROW.to_s.match(#{regex.to_s.inspect})
-              matches ? (matches[#{i + 1}] || '') : ''
+            def #{name}
+              @_row_key_attributes ||= {}       
+
+              if !@_row_key_attributes['#{name}'] || self.ROW_changed?
+                matches = self.ROW.to_s.match(#{regex.to_s.inspect})
+                @_row_key_attributes['#{name}'] = if matches
+                  (matches[#{i + 1}] || '')
+                else
+                  ''
+                end
+              end
+
+              @_row_key_attributes['#{name}']
             end
           } 
         end

@@ -908,6 +908,18 @@ module ActiveRecord
         p.ROW.should be_nil
         p.foo.should == ''
       end
+
+      it "should return correct value even if the ROW key is changed" do
+        Page.class_eval do
+          row_key_attributes :regex => /_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})$/, :attribute_names => [:timestamp]
+        end
+
+        p = Page.new
+        p.ROW = "apikey_1066_2008-12-25_03:00"
+        p.timestamp.should == '2008-12-25_03:00'
+        p.ROW = "apikey_1066_2008-12-25_12:00"
+        p.timestamp.should == '2008-12-25_12:00'
+      end
     end
   end
 end
