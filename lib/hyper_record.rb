@@ -559,6 +559,16 @@ module ActiveRecord
             end
           } 
         end
+
+        if !names.blank?
+          self.class_eval %{
+            def self.assemble_row_key_from_attributes(attributes)
+              %w(#{names.join(' ')}).map do |n| 
+                attributes[n.to_sym]
+              end.compact.join('_')
+            end
+          }
+        end
       end
 
       attr_accessor :mutator, :mutator_flags, :mutator_flush_interval

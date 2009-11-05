@@ -1,4 +1,6 @@
 0.2.8 (not yet released)
+- new assemble_row_key_from_attributes that generates row keys in the same 
+  order declared in row_key_attributes
 - cache row_key_attributes results so that regex is not constantly
   reevaluated for same value
 - new :instantiate_only_requested_columns finder option that does not

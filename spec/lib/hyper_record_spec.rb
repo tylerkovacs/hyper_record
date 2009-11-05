@@ -843,6 +843,28 @@ module ActiveRecord
     end
 
     describe HyperBase, '.row_key_attributes' do
+      it "should assemble a row key in the order that matches row key attributes" do
+        Page.class_eval do
+          row_key_attributes :regex => /^(\w+)_(\d+)_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})$/, :attribute_names => [:type_prefix, :identifier, :timestamp]
+        end
+
+        Page.assemble_row_key_from_attributes({
+          :type_prefix => 'prefix',
+          :identifier => 12,
+          :timestamp => '2009-11-05_00:00'
+        }).should == 'prefix_12_2009-11-05_00:00'
+
+        Page.class_eval do
+          row_key_attributes :regex => /^(\w+)_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})_(\d+)$/, :attribute_names => [:type_prefix, :timestamp, :identifier]
+        end
+
+        Page.assemble_row_key_from_attributes({
+          :type_prefix => 'prefix',
+          :identifier => 12,
+          :timestamp => '2009-11-05_00:00'
+        }).should == 'prefix_2009-11-05_00:00_12'
+      end
+
       it "should extract attributes out of the row key" do
         Page.class_eval do
           row_key_attributes :regex => /_(\d{4}-\d{2}-\d{2}_\d{2}:\d{2})$/, :attribute_names => [:timestamp]
