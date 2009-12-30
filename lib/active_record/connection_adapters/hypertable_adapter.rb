@@ -571,7 +571,9 @@ module ActiveRecord
           column_family.to_s,
           column_qualifier.to_s,
           value.to_s
-        ]
+        ].map do |s|
+          s.respond_to?(:force_encoding) ? s.force_encoding('ascii-8bit') : s
+        end
       end
 
       # Delete cells from a table.
