@@ -81,9 +81,9 @@ module ActiveRecord
         @hypertable_column_names = {}
       end
 
-      def with_thrift_client
-        @connection.with_thrift_client(@config[:host], config[:port], 
-          config[:timeout])
+      def raw_thrift_client(&block)
+        Hypertable.with_thrift_client(@config[:host], @config[:port],
+          @config[:timeout], &block)
       end
 
       # Return the current set of performance statistics.  The application

@@ -628,8 +628,8 @@ module ActiveRecord
         self.connection.each_row_as_arrays(scanner, &block)
       end
 
-      def with_thrift_client
-        self.connection.with_thrift_client
+      def with_thrift_client(&block)
+        self.connection.raw_thrift_client(&block)
       end
     end
   end
