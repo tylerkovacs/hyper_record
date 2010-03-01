@@ -19,15 +19,11 @@ See:
 INSTALLATION
 ============
 
-1. Add github as a gem source (if you haven't already)
+1. Install HyperRecord gem (http://rubygems.org/gems/hyper_record)
 
-  gem sources -a http://gems.github.com
+  gem install hyper_record
 
-2. Install HyperRecord gem
-
-  gem install tylerkovacs-hyper_record
-
-3. Configure Hypertable Adapter by adding an entry to config/database.yml
+2. Configure Hypertable Adapter by adding an entry to config/database.yml
    that points to an instance of the Hypertable Thrift Broker (uses port
    38080 by default).
 
@@ -38,7 +34,7 @@ INSTALLATION
 
    NOTE: HyperRecord requires Thrift SVN revision 765279 or later.
 
-4. Add the following to the bottom of config/environment.rb:
+3. Add the following to the bottom of config/environment.rb:
 
   require 'hyper_record'
 
@@ -46,4 +42,4 @@ INSTALLATION
 COPYRIGHT
 =========
 
-Copyright (c) 2008 tylerkovacs. See LICENSE for details.
+Copyright (c) 2010 tylerkovacs. See LICENSE for details.
