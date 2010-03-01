@@ -82,7 +82,7 @@ module ActiveRecord
       end
 
       def raw_thrift_client(&block)
-        Hypertable.with_thrift_client(@config[:host], @config[:port],
+        Hypertable.with_thrift_client(@config[:host], @config[:port], 
           @config[:timeout], &block)
       end
 
@@ -390,7 +390,7 @@ module ActiveRecord
 
       # Translate "sexy" ActiveRecord::Migration syntax to an HQL
       # CREATE TABLE statement.
-      def create_table_hql(table_name, options={})
+      def create_table_hql(table_name, options={}, &block)
         table_definition = HyperTableDefinition.new(self)
 
         yield table_definition
@@ -413,8 +413,8 @@ module ActiveRecord
         create_sql.join(' ').strip
       end
 
-      def create_table(table_name, options = {})
-        execute(create_table_hql(table_name, options))
+      def create_table(table_name, options={}, &block)
+        execute(create_table_hql(table_name, options, &block))
       end
 
       def drop_table(table_name, options = {})
@@ -571,8 +571,8 @@ module ActiveRecord
           column_family.to_s,
           column_qualifier.to_s,
           value.to_s
-        ].map do |s|
-          s.respond_to?(:force_encoding) ? s.force_encoding('ascii-8bit') : s
+        ].map do |s| 
+          s.respond_to?(:force_encoding) ? s.force_encoding('ascii-8bit') : s 
         end
       end
 

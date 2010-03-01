@@ -105,6 +105,17 @@ module ActiveRecord
           hql.should == "CREATE TABLE 'new_table' ( 'name' , 'value' MAX_VERSIONS=1 )"
         end
       end
+
+      describe HypertableAdapter, '.create_table_with_block' do
+        it "should assemble correct hql for creating a table" do
+          @h.should_receive(:execute).with("CREATE TABLE 'new_table_with_block' ( 'name' , 'value' MAX_VERSIONS=1 )").and_return(nil)
+
+          @h.create_table :new_table_with_block do |t|
+            t.column :name, :string
+            t.column :value, :string, :max_versions => 1
+          end
+        end
+      end
     end
   end
 end
