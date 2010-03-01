@@ -1,4 +1,4 @@
-0.2.8 (not yet released)
+0.2.8 (2010/03/01)
 - support friendly migration-syntax declared using blocks
 - new assemble_row_key_from_attributes that generates row keys in the same 
   order declared in row_key_attributes
