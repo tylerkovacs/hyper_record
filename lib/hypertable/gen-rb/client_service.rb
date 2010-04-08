@@ -203,6 +203,66 @@ require 'client_types'
                   raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_cells_as_arrays failed: unknown result')
                 end
 
+                def put_cells(tablename, mutate_spec, cells)
+                  send_put_cells(tablename, mutate_spec, cells)
+                  recv_put_cells()
+                end
+
+                def send_put_cells(tablename, mutate_spec, cells)
+                  send_message('put_cells', Put_cells_args, :tablename => tablename, :mutate_spec => mutate_spec, :cells => cells)
+                end
+
+                def recv_put_cells()
+                  result = receive_message(Put_cells_result)
+                  raise result.e unless result.e.nil?
+                  return
+                end
+
+                def put_cells_as_arrays(tablename, mutate_spec, cells)
+                  send_put_cells_as_arrays(tablename, mutate_spec, cells)
+                  recv_put_cells_as_arrays()
+                end
+
+                def send_put_cells_as_arrays(tablename, mutate_spec, cells)
+                  send_message('put_cells_as_arrays', Put_cells_as_arrays_args, :tablename => tablename, :mutate_spec => mutate_spec, :cells => cells)
+                end
+
+                def recv_put_cells_as_arrays()
+                  result = receive_message(Put_cells_as_arrays_result)
+                  raise result.e unless result.e.nil?
+                  return
+                end
+
+                def put_cell(tablename, mutate_spec, cell)
+                  send_put_cell(tablename, mutate_spec, cell)
+                  recv_put_cell()
+                end
+
+                def send_put_cell(tablename, mutate_spec, cell)
+                  send_message('put_cell', Put_cell_args, :tablename => tablename, :mutate_spec => mutate_spec, :cell => cell)
+                end
+
+                def recv_put_cell()
+                  result = receive_message(Put_cell_result)
+                  raise result.e unless result.e.nil?
+                  return
+                end
+
+                def put_cell_as_array(tablename, mutate_spec, cell)
+                  send_put_cell_as_array(tablename, mutate_spec, cell)
+                  recv_put_cell_as_array()
+                end
+
+                def send_put_cell_as_array(tablename, mutate_spec, cell)
+                  send_message('put_cell_as_array', Put_cell_as_array_args, :tablename => tablename, :mutate_spec => mutate_spec, :cell => cell)
+                end
+
+                def recv_put_cell_as_array()
+                  result = receive_message(Put_cell_as_array_result)
+                  raise result.e unless result.e.nil?
+                  return
+                end
+
                 def open_mutator(name, flags, flush_interval)
                   send_open_mutator(name, flags, flush_interval)
                   return recv_open_mutator()
@@ -309,6 +369,22 @@ require 'client_types'
                   return
                 end
 
+                def exists_table(name)
+                  send_exists_table(name)
+                  return recv_exists_table()
+                end
+
+                def send_exists_table(name)
+                  send_message('exists_table', Exists_table_args, :name => name)
+                end
+
+                def recv_exists_table()
+                  result = receive_message(Exists_table_result)
+                  return result.success unless result.success.nil?
+                  raise result.e unless result.e.nil?
+                  raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'exists_table failed: unknown result')
+                end
+
                 def get_table_id(name)
                   send_get_table_id(name)
                   return recv_get_table_id()
@@ -355,6 +431,22 @@ require 'client_types'
                   return result.success unless result.success.nil?
                   raise result.e unless result.e.nil?
                   raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_tables failed: unknown result')
+                end
+
+                def get_table_splits(name)
+                  send_get_table_splits(name)
+                  return recv_get_table_splits()
+                end
+
+                def send_get_table_splits(name)
+                  send_message('get_table_splits', Get_table_splits_args, :name => name)
+                end
+
+                def recv_get_table_splits()
+                  result = receive_message(Get_table_splits_result)
+                  return result.success unless result.success.nil?
+                  raise result.e unless result.e.nil?
+                  raise ::Thrift::ApplicationException.new(::Thrift::ApplicationException::MISSING_RESULT, 'get_table_splits failed: unknown result')
                 end
 
                 def drop_table(name, if_exists)
@@ -509,6 +601,50 @@ require 'client_types'
                   write_result(result, oprot, 'get_cells_as_arrays', seqid)
                 end
 
+                def process_put_cells(seqid, iprot, oprot)
+                  args = read_args(iprot, Put_cells_args)
+                  result = Put_cells_result.new()
+                  begin
+                    @handler.put_cells(args.tablename, args.mutate_spec, args.cells)
+                  rescue Hypertable::ThriftGen::ClientException => e
+                    result.e = e
+                  end
+                  write_result(result, oprot, 'put_cells', seqid)
+                end
+
+                def process_put_cells_as_arrays(seqid, iprot, oprot)
+                  args = read_args(iprot, Put_cells_as_arrays_args)
+                  result = Put_cells_as_arrays_result.new()
+                  begin
+                    @handler.put_cells_as_arrays(args.tablename, args.mutate_spec, args.cells)
+                  rescue Hypertable::ThriftGen::ClientException => e
+                    result.e = e
+                  end
+                  write_result(result, oprot, 'put_cells_as_arrays', seqid)
+                end
+
+                def process_put_cell(seqid, iprot, oprot)
+                  args = read_args(iprot, Put_cell_args)
+                  result = Put_cell_result.new()
+                  begin
+                    @handler.put_cell(args.tablename, args.mutate_spec, args.cell)
+                  rescue Hypertable::ThriftGen::ClientException => e
+                    result.e = e
+                  end
+                  write_result(result, oprot, 'put_cell', seqid)
+                end
+
+                def process_put_cell_as_array(seqid, iprot, oprot)
+                  args = read_args(iprot, Put_cell_as_array_args)
+                  result = Put_cell_as_array_result.new()
+                  begin
+                    @handler.put_cell_as_array(args.tablename, args.mutate_spec, args.cell)
+                  rescue Hypertable::ThriftGen::ClientException => e
+                    result.e = e
+                  end
+                  write_result(result, oprot, 'put_cell_as_array', seqid)
+                end
+
                 def process_open_mutator(seqid, iprot, oprot)
                   args = read_args(iprot, Open_mutator_args)
                   result = Open_mutator_result.new()
@@ -586,6 +722,17 @@ require 'client_types'
                   write_result(result, oprot, 'flush_mutator', seqid)
                 end
 
+                def process_exists_table(seqid, iprot, oprot)
+                  args = read_args(iprot, Exists_table_args)
+                  result = Exists_table_result.new()
+                  begin
+                    result.success = @handler.exists_table(args.name)
+                  rescue Hypertable::ThriftGen::ClientException => e
+                    result.e = e
+                  end
+                  write_result(result, oprot, 'exists_table', seqid)
+                end
+
                 def process_get_table_id(seqid, iprot, oprot)
                   args = read_args(iprot, Get_table_id_args)
                   result = Get_table_id_result.new()
@@ -617,6 +764,17 @@ require 'client_types'
                     result.e = e
                   end
                   write_result(result, oprot, 'get_tables', seqid)
+                end
+
+                def process_get_table_splits(seqid, iprot, oprot)
+                  args = read_args(iprot, Get_table_splits_args)
+                  result = Get_table_splits_result.new()
+                  begin
+                    result.success = @handler.get_table_splits(args.name)
+                  rescue Hypertable::ThriftGen::ClientException => e
+                    result.e = e
+                  end
+                  write_result(result, oprot, 'get_table_splits', seqid)
                 end
 
                 def process_drop_table(seqid, iprot, oprot)
@@ -1056,6 +1214,150 @@ require 'client_types'
 
               end
 
+              class Put_cells_args
+                include ::Thrift::Struct
+                TABLENAME = 1
+                MUTATE_SPEC = 2
+                CELLS = 3
+
+                ::Thrift::Struct.field_accessor self, :tablename, :mutate_spec, :cells
+                FIELDS = {
+                  TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tablename'},
+                  MUTATE_SPEC => {:type => ::Thrift::Types::STRUCT, :name => 'mutate_spec', :class => Hypertable::ThriftGen::MutateSpec},
+                  CELLS => {:type => ::Thrift::Types::LIST, :name => 'cells', :element => {:type => ::Thrift::Types::STRUCT, :class => Hypertable::ThriftGen::Cell}}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Put_cells_result
+                include ::Thrift::Struct
+                E = 1
+
+                ::Thrift::Struct.field_accessor self, :e
+                FIELDS = {
+                  E => {:type => ::Thrift::Types::STRUCT, :name => 'e', :class => Hypertable::ThriftGen::ClientException}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Put_cells_as_arrays_args
+                include ::Thrift::Struct
+                TABLENAME = 1
+                MUTATE_SPEC = 2
+                CELLS = 3
+
+                ::Thrift::Struct.field_accessor self, :tablename, :mutate_spec, :cells
+                FIELDS = {
+                  TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tablename'},
+                  MUTATE_SPEC => {:type => ::Thrift::Types::STRUCT, :name => 'mutate_spec', :class => Hypertable::ThriftGen::MutateSpec},
+                  CELLS => {:type => ::Thrift::Types::LIST, :name => 'cells', :element => {:type => ::Thrift::Types::LIST, :element => {:type => ::Thrift::Types::STRING}}}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Put_cells_as_arrays_result
+                include ::Thrift::Struct
+                E = 1
+
+                ::Thrift::Struct.field_accessor self, :e
+                FIELDS = {
+                  E => {:type => ::Thrift::Types::STRUCT, :name => 'e', :class => Hypertable::ThriftGen::ClientException}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Put_cell_args
+                include ::Thrift::Struct
+                TABLENAME = 1
+                MUTATE_SPEC = 2
+                CELL = 3
+
+                ::Thrift::Struct.field_accessor self, :tablename, :mutate_spec, :cell
+                FIELDS = {
+                  TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tablename'},
+                  MUTATE_SPEC => {:type => ::Thrift::Types::STRUCT, :name => 'mutate_spec', :class => Hypertable::ThriftGen::MutateSpec},
+                  CELL => {:type => ::Thrift::Types::STRUCT, :name => 'cell', :class => Hypertable::ThriftGen::Cell}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Put_cell_result
+                include ::Thrift::Struct
+                E = 1
+
+                ::Thrift::Struct.field_accessor self, :e
+                FIELDS = {
+                  E => {:type => ::Thrift::Types::STRUCT, :name => 'e', :class => Hypertable::ThriftGen::ClientException}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Put_cell_as_array_args
+                include ::Thrift::Struct
+                TABLENAME = 1
+                MUTATE_SPEC = 2
+                CELL = 3
+
+                ::Thrift::Struct.field_accessor self, :tablename, :mutate_spec, :cell
+                FIELDS = {
+                  TABLENAME => {:type => ::Thrift::Types::STRING, :name => 'tablename'},
+                  MUTATE_SPEC => {:type => ::Thrift::Types::STRUCT, :name => 'mutate_spec', :class => Hypertable::ThriftGen::MutateSpec},
+                  CELL => {:type => ::Thrift::Types::LIST, :name => 'cell', :element => {:type => ::Thrift::Types::STRING}}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Put_cell_as_array_result
+                include ::Thrift::Struct
+                E = 1
+
+                ::Thrift::Struct.field_accessor self, :e
+                FIELDS = {
+                  E => {:type => ::Thrift::Types::STRUCT, :name => 'e', :class => Hypertable::ThriftGen::ClientException}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
               class Open_mutator_args
                 include ::Thrift::Struct
                 NAME = 1
@@ -1296,6 +1598,40 @@ require 'client_types'
 
               end
 
+              class Exists_table_args
+                include ::Thrift::Struct
+                NAME = 1
+
+                ::Thrift::Struct.field_accessor self, :name
+                FIELDS = {
+                  NAME => {:type => ::Thrift::Types::STRING, :name => 'name'}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Exists_table_result
+                include ::Thrift::Struct
+                SUCCESS = 0
+                E = 1
+
+                ::Thrift::Struct.field_accessor self, :success, :e
+                FIELDS = {
+                  SUCCESS => {:type => ::Thrift::Types::BOOL, :name => 'success'},
+                  E => {:type => ::Thrift::Types::STRUCT, :name => 'e', :class => Hypertable::ThriftGen::ClientException}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
               class Get_table_id_args
                 include ::Thrift::Struct
                 NAME = 1
@@ -1386,6 +1722,40 @@ require 'client_types'
                 ::Thrift::Struct.field_accessor self, :success, :e
                 FIELDS = {
                   SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRING}},
+                  E => {:type => ::Thrift::Types::STRUCT, :name => 'e', :class => Hypertable::ThriftGen::ClientException}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Get_table_splits_args
+                include ::Thrift::Struct
+                NAME = 1
+
+                ::Thrift::Struct.field_accessor self, :name
+                FIELDS = {
+                  NAME => {:type => ::Thrift::Types::STRING, :name => 'name'}
+                }
+
+                def struct_fields; FIELDS; end
+
+                def validate
+                end
+
+              end
+
+              class Get_table_splits_result
+                include ::Thrift::Struct
+                SUCCESS = 0
+                E = 1
+
+                ::Thrift::Struct.field_accessor self, :success, :e
+                FIELDS = {
+                  SUCCESS => {:type => ::Thrift::Types::LIST, :name => 'success', :element => {:type => ::Thrift::Types::STRUCT, :class => Hypertable::ThriftGen::TableSplit}},
                   E => {:type => ::Thrift::Types::STRUCT, :name => 'e', :class => Hypertable::ThriftGen::ClientException}
                 }
 

@@ -5,7 +5,7 @@
 
 Gem::Specification.new do |s|
   s.name = %q{hyper_record}
-  s.version = "0.2.8"
+  s.version = "0.9.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["tylerkovacs"]
@@ -40,7 +40,7 @@ Gem::Specification.new do |s|
      "lib/hypertable/gen-rb/hql_types.rb",
      "lib/hypertable/thrift_client.rb",
      "lib/hypertable/thrift_transport_monkey_patch.rb",
-     "pkg/hyper_record-0.2.8.gem",
+     "pkg/hyper_record-0.9.3.gem",
      "spec/fixtures/pages.yml",
      "spec/fixtures/qualified_pages.yml",
      "spec/lib/associations_spec.rb",

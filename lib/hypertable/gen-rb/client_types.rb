@@ -18,8 +18,9 @@ module Hypertable
 
         module MutatorFlag
           NO_LOG_SYNC = 1
-          VALUE_MAP = {1 => "NO_LOG_SYNC"}
-          VALID_VALUES = Set.new([NO_LOG_SYNC]).freeze
+          IGNORE_UNKNOWN_CFS = 2
+          VALUE_MAP = {1 => "NO_LOG_SYNC", 2 => "IGNORE_UNKNOWN_CFS"}
+          VALID_VALUES = Set.new([NO_LOG_SYNC, IGNORE_UNKNOWN_CFS]).freeze
         end
 
         # Specifies a range of rows
@@ -148,8 +149,9 @@ module Hypertable
           START_TIME = 6
           END_TIME = 7
           COLUMNS = 8
+          KEYS_ONLY = 9
 
-          ::Thrift::Struct.field_accessor self, :row_intervals, :cell_intervals, :return_deletes, :revs, :row_limit, :start_time, :end_time, :columns
+          ::Thrift::Struct.field_accessor self, :row_intervals, :cell_intervals, :return_deletes, :revs, :row_limit, :start_time, :end_time, :columns, :keys_only
           FIELDS = {
             ROW_INTERVALS => {:type => ::Thrift::Types::LIST, :name => 'row_intervals', :element => {:type => ::Thrift::Types::STRUCT, :class => Hypertable::ThriftGen::RowInterval}, :optional => true},
             CELL_INTERVALS => {:type => ::Thrift::Types::LIST, :name => 'cell_intervals', :element => {:type => ::Thrift::Types::STRUCT, :class => Hypertable::ThriftGen::CellInterval}, :optional => true},
@@ -158,7 +160,8 @@ module Hypertable
             ROW_LIMIT => {:type => ::Thrift::Types::I32, :name => 'row_limit', :default => 0, :optional => true},
             START_TIME => {:type => ::Thrift::Types::I64, :name => 'start_time', :optional => true},
             END_TIME => {:type => ::Thrift::Types::I64, :name => 'end_time', :optional => true},
-            COLUMNS => {:type => ::Thrift::Types::LIST, :name => 'columns', :element => {:type => ::Thrift::Types::STRING}, :optional => true}
+            COLUMNS => {:type => ::Thrift::Types::LIST, :name => 'columns', :element => {:type => ::Thrift::Types::STRING}, :optional => true},
+            KEYS_ONLY => {:type => ::Thrift::Types::BOOL, :name => 'keys_only', :default => false, :optional => true}
           }
 
           def struct_fields; FIELDS; end
@@ -168,10 +171,10 @@ module Hypertable
 
         end
 
-        # Defines a table cell
+        # Defines a cell key
         # 
         # <dl>
-        #   <dt>row_key</dt>
+        #   <dt>row</dt>
         #   <dd>Specifies the row key. Note, it cannot contain null characters.
         #   If a row key is not specified in a return cell, it's assumed to
         #   be the same as the previous cell</dd>
@@ -182,9 +185,6 @@ module Hypertable
         #   <dt>column_qualifier</dt>
         #   <dd>Specifies the column qualifier. A column family must be specified.</dd>
         # 
-        #   <dt>value</dt>
-        #   <dd>Value of a cell. Currently a sequence of uninterpreted bytes.</dd>
-        # 
         #   <dt>timestamp</dt>
         #   <dd>Nanoseconds since epoch for the cell<dd>
         # 
@@ -194,25 +194,122 @@ module Hypertable
         #   <dt>flag</dt>
         #   <dd>A 16-bit integer indicating the state of the cell</dd>
         # </dl>
-        class Cell
+        class Key
           include ::Thrift::Struct
-          ROW_KEY = 1
+          ROW = 1
           COLUMN_FAMILY = 2
           COLUMN_QUALIFIER = 3
-          VALUE = 4
-          TIMESTAMP = 5
-          REVISION = 6
-          FLAG = 7
+          TIMESTAMP = 4
+          REVISION = 5
+          FLAG = 6
 
-          ::Thrift::Struct.field_accessor self, :row_key, :column_family, :column_qualifier, :value, :timestamp, :revision, :flag
+          ::Thrift::Struct.field_accessor self, :row, :column_family, :column_qualifier, :timestamp, :revision, :flag
           FIELDS = {
-            ROW_KEY => {:type => ::Thrift::Types::STRING, :name => 'row_key', :optional => true},
-            COLUMN_FAMILY => {:type => ::Thrift::Types::STRING, :name => 'column_family', :optional => true},
-            COLUMN_QUALIFIER => {:type => ::Thrift::Types::STRING, :name => 'column_qualifier', :optional => true},
-            VALUE => {:type => ::Thrift::Types::STRING, :name => 'value', :optional => true},
+            ROW => {:type => ::Thrift::Types::STRING, :name => 'row'},
+            COLUMN_FAMILY => {:type => ::Thrift::Types::STRING, :name => 'column_family'},
+            COLUMN_QUALIFIER => {:type => ::Thrift::Types::STRING, :name => 'column_qualifier'},
             TIMESTAMP => {:type => ::Thrift::Types::I64, :name => 'timestamp', :optional => true},
             REVISION => {:type => ::Thrift::Types::I64, :name => 'revision', :optional => true},
-            FLAG => {:type => ::Thrift::Types::I16, :name => 'flag', :default => 255, :optional => true}
+            FLAG => {:type => ::Thrift::Types::I16, :name => 'flag', :default => 255}
+          }
+
+          def struct_fields; FIELDS; end
+
+          def validate
+          end
+
+        end
+
+        # Specifies options for a shared periodic mutator
+        # 
+        # <dl>
+        #   <dt>appname</dt>
+        #   <dd>String key used to share/retrieve mutator, eg: "my_ht_app"</dd>
+        # 
+        #   <dt>flush_interval</dt>
+        #   <dd>Time interval between flushes</dd>
+        # 
+        #   <dt>flags</dt>
+        #   <dd>Mutator flags</dt>
+        # </dl>
+        class MutateSpec
+          include ::Thrift::Struct
+          APPNAME = 1
+          FLUSH_INTERVAL = 2
+          FLAGS = 3
+
+          ::Thrift::Struct.field_accessor self, :appname, :flush_interval, :flags
+          FIELDS = {
+            APPNAME => {:type => ::Thrift::Types::STRING, :name => 'appname', :default => %q""},
+            FLUSH_INTERVAL => {:type => ::Thrift::Types::I32, :name => 'flush_interval', :default => 1000},
+            FLAGS => {:type => ::Thrift::Types::I32, :name => 'flags', :default => 2}
+          }
+
+          def struct_fields; FIELDS; end
+
+          def validate
+            raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field appname is unset!') unless @appname
+            raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field flush_interval is unset!') unless @flush_interval
+            raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field flags is unset!') unless @flags
+          end
+
+        end
+
+        # Defines a table cell
+        # 
+        # <dl>
+        #   <dt>key</dt>
+        #   <dd>Specifies the cell key</dd>
+        # 
+        #   <dt>value</dt>
+        #   <dd>Value of a cell. Currently a sequence of uninterpreted bytes.</dd>
+        # </dl>
+        class Cell
+          include ::Thrift::Struct
+          KEY = 1
+          VALUE = 2
+
+          ::Thrift::Struct.field_accessor self, :key, :value
+          FIELDS = {
+            KEY => {:type => ::Thrift::Types::STRUCT, :name => 'key', :class => Hypertable::ThriftGen::Key},
+            VALUE => {:type => ::Thrift::Types::STRING, :name => 'value', :optional => true}
+          }
+
+          def struct_fields; FIELDS; end
+
+          def validate
+          end
+
+        end
+
+        # Defines a table split
+        # 
+        # <dl>
+        #   <dt>start_row</dt>
+        #   <dd>Starting row of the split.</dd>
+        # 
+        #   <dt>end_row</dt>
+        #   <dd>Ending row of the split.</dd>
+        # 
+        #   <dt>location</dt>
+        #   <dd>Location (proxy name) of the split.</dd>
+        # 
+        #   <dt>ip_address</dt>
+        #   <dd>The IP address of the split.</dd>
+        # </dl>
+        class TableSplit
+          include ::Thrift::Struct
+          START_ROW = 1
+          END_ROW = 2
+          LOCATION = 3
+          IP_ADDRESS = 4
+
+          ::Thrift::Struct.field_accessor self, :start_row, :end_row, :location, :ip_address
+          FIELDS = {
+            START_ROW => {:type => ::Thrift::Types::STRING, :name => 'start_row', :optional => true},
+            END_ROW => {:type => ::Thrift::Types::STRING, :name => 'end_row', :optional => true},
+            LOCATION => {:type => ::Thrift::Types::STRING, :name => 'location', :optional => true},
+            IP_ADDRESS => {:type => ::Thrift::Types::STRING, :name => 'ip_address', :optional => true}
           }
 
           def struct_fields; FIELDS; end

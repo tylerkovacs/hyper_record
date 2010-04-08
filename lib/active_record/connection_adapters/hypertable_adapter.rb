@@ -82,8 +82,11 @@ module ActiveRecord
       end
 
       def raw_thrift_client(&block)
-        Hypertable.with_thrift_client(@config[:host], @config[:port], 
+        t1 = Time.now
+        results = Hypertable.with_thrift_client(@config[:host], @config[:port], 
           @config[:timeout], &block)
+        @@read_latency += Time.now - t1
+        results 
       end
 
       # Return the current set of performance statistics.  The application
@@ -552,11 +555,12 @@ module ActiveRecord
       # on write - used by special operations (e.g,. delete )
       def thrift_cell_from_native_array(array)
         cell = Hypertable::ThriftGen::Cell.new
-        cell.row_key = array[0]
-        cell.column_family = array[1]
-        cell.column_qualifier = array[2] if !array[2].blank?
-        cell.value = array[3] if array[3]
-        cell.timestamp = array[4] if array[4]
+        cell.key = Hypertable::ThriftGen::Key.new
+        cell.key.row = array[0]
+        cell.key.column_family = array[1]
+        cell.key.column_qualifier = array[2] if !array[2].blank?
+        cell.key.value = array[3] if array[3]
+        cell.key.timestamp = array[4] if array[4]
         cell
       end
 
@@ -599,8 +603,9 @@ module ActiveRecord
         t1 = Time.now
         cells = row_keys.map do |row_key|
           cell = Hypertable::ThriftGen::Cell.new
-          cell.row_key = row_key
-          cell.flag = Hypertable::ThriftGen::CellFlag::DELETE_ROW
+          cell.key = Hypertable::ThriftGen::Key.new
+          cell.key.row = row_key
+          cell.key.flag = Hypertable::ThriftGen::CellFlag::DELETE_ROW
           cell
         end
 

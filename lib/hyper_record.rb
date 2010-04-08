@@ -157,6 +157,7 @@ module ActiveRecord
     def quoted_attributes_to_cells(quoted_attrs, table=self.class.table_name)
       cells = []
       pk = self.attributes[self.class.primary_key]
+
       quoted_attrs.keys.each{|key|
         name, qualifier = connection.hypertable_column_name(key, table).split(':', 2)
         cells << connection.cell_native_array(pk, name, qualifier, quoted_attrs[key])
@@ -421,7 +422,8 @@ module ActiveRecord
       def find_by_hql(hql)
         hql_result = connection.execute(hql)
         cells_in_native_array_format = hql_result.cells.map do |c| 
-          connection.cell_native_array(c.row_key, c.column_family, c.column_qualifier, c.value)
+          connection.cell_native_array(c.key.row, c.key.column_family, 
+            c.key.column_qualifier, c.value)
         end
         convert_cells_to_instantiated_rows(cells_in_native_array_format)
       end
