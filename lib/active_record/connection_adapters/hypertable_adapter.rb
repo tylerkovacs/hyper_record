@@ -529,8 +529,12 @@ module ActiveRecord
       # mutator as argument.  Mutators can be created with the open_mutator
       # method.  In the near future (Summer 2009), Hypertable will provide
       # a periodic mutator that automatically flushes at specific intervals.
-      def write_cells(table_name, cells, mutator=nil, flags=nil, flush_interval=nil)
+      def write_cells(table_name, cells, options={})
         return if cells.blank?
+
+        mutator = options[:mutator]
+        flags = options[:flags]
+        flush_interval = options[:flush_interval]
 
         retry_on_connection_error {
           local_mutator_created = !mutator
@@ -538,7 +542,15 @@ module ActiveRecord
           begin
             t1 = Time.now
             mutator ||= open_mutator(table_name, flags, flush_interval)
-            @connection.set_cells_as_arrays(mutator, cells)
+            if options[:asynchronous_write]
+              mutate_spec = Hypertable::ThriftGen::MutateSpec.new
+              mutate_spec.appname = 'hyper_record'
+              mutate_spec.flush_interval = 1000
+              mutate_spec.flags = 2
+              @connection.put_cells_as_arrays(table_name, mutate_spec, cells)
+            else
+              @connection.set_cells_as_arrays(mutator, cells)
+            end
           ensure
             if local_mutator_created && mutator
               close_mutator(mutator)

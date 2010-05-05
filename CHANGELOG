@@ -3,6 +3,7 @@
 - now compatible with Hypertable version 0.9.3.0
   - no longer compatible with earlier Hypertable versions due to a Thrift
     API change
+- added support for asynchronous writes through new put_cells ThriftBroker API
 
 0.2.8 (2010/03/01)
 - support friendly migration-syntax declared using blocks

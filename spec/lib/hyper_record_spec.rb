@@ -842,6 +842,59 @@ module ActiveRecord
       it "should support native each_row_as_arrays scanner method"
     end
 
+    describe HyperBase, '.mutator_options' do
+      it 'should default to set_cells method' do
+        class Temp < ActiveRecord::HyperBase
+          def self.create_table
+            hql = "CREATE TABLE #{table_name} (
+              'name',
+              'url'
+            )"
+            connection.execute(hql)
+          end
+        end
+
+        Temp.drop_table
+        Temp.create_table
+        Temp.connection.instance_eval("@connection").should_receive(:set_cells_as_arrays).and_return(nil)
+        t = Temp.new({:ROW => 'test', :name => 'test'})
+        t.save!
+        Temp.drop_table
+      end
+
+      describe 'asynchronous_write' do
+        before(:each) do
+          class Temp < ActiveRecord::HyperBase
+            mutator_options :asynchronous_write => true
+
+            def self.create_table
+              hql = "CREATE TABLE #{table_name} (
+                'name',
+                'url'
+              )"
+              connection.execute(hql)
+            end
+
+            Temp.drop_table
+            Temp.create_table
+          end
+        end
+
+        it 'should use put_cells method when asynchronous_write enabled' do
+          Temp.connection.instance_eval("@connection").should_receive(:put_cells_as_arrays).and_return(nil)
+          t = Temp.new({:ROW => 'test', :name => 'test'})
+          t.save!
+        end
+
+        it 'should still result in cells being written to hypertable' do
+          t = Temp.new({:ROW => 'test', :name => 'test'})
+          t.save!
+          sleep 3
+          Temp.find('test').should == t
+        end
+      end
+    end
+
     describe HyperBase, '.row_key_attributes' do
       it "should assemble a row key in the order that matches row key attributes" do
         Page.class_eval do

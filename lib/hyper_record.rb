@@ -180,7 +180,12 @@ module ActiveRecord
         # puts msg
       end
 
-      connection.write_cells(table, cells, mutator, self.class.mutator_flags, self.class.mutator_flush_interval)
+      connection.write_cells(table, cells, {
+        :mutator => mutator, 
+        :flags => self.class.mutator_flags, 
+        :flush_interval => self.class.mutator_flush_interval,
+        :asynchronous_write => self.class.asynchronous_write
+      })
     end
 
     # Delete an array of cells from Hypertable
@@ -573,11 +578,15 @@ module ActiveRecord
         end
       end
 
-      attr_accessor :mutator, :mutator_flags, :mutator_flush_interval
+      attr_accessor :mutator, :mutator_flags, :mutator_flush_interval,
+        :asynchronous_write
+
       def mutator_options(*attrs)
         symbolized_attrs = attrs.first.symbolize_keys
         @mutator_flags = symbolized_attrs[:flags].to_i
         @mutator_flush_interval = symbolized_attrs[:flush_interval].to_i
+        @asynchronous_write = symbolized_attrs[:asynchronous_write]
+
         if symbolized_attrs[:persistent]
           @mutator = self.open_mutator(@mutator_flags, @mutator_flush_interval)
         end
