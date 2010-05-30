@@ -1,0 +1,44 @@
+The HyperRecord test suite is spread out across a number of different files
+in the test/ and spec/ directories.
+
+$ ls -l test/
+total 28
+-rw-r--r-- 1 root root   188 May 20 15:36 test_helper.rb
+-rw-r--r-- 1 root root 22281 May 30 13:56 thrift_client_test.rb
+
+$ ls -l spec/
+total 12
+drwxr-xr-x 3 root root 4096 May 20 15:36 fixtures
+drwxr-xr-x 3 root root 4096 May 30 14:08 lib
+-rw-r--r-- 1 root root 4067 May 20 15:36 spec_helper.rb
+
+The test/ directory contains unit tests (using Ruby's standard Test::Unit
+library) that exercise the Thrift client libraries only.  These tests do
+not cover any functionality specific to HyperRecord.
+
+To run the Thrift client unit tests:
+$ rake
+<snip test output>
+
+Failures in the test/ suite may be caused by:
+
+1. A mismatch between the version of Thrift installed on your local machine
+   and the version of Thrift supported in this release on HyperRecord.
+2. Problems communicating with a ThriftBroker process running on the default
+   port (38080) on localhost.  Note: you must be running Hypertable for
+   these tests to pass and, specifically, a ThriftBroker process must be
+   running on localhost.
+
+The spec/ directory contains rspec tests that cover HyperRecord functionality.
+Since HyperRecord extends the base ActiveRecord implementation, these tests 
+can only be run if the HyperRecord gem directory has been unpacked into a
+local Rails tree.  This is typically done by:
+
+$ gem install hyper_record
+$ cd vendor/gems
+$ gem unpack hyper_recrd
+$ gem uninstall hyper_record
+
+To run the HyperRecord rspec tests:
+$ rake spec
+<snip test output>

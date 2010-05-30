@@ -14,8 +14,6 @@ begin
     s.description = "See README"
     s.authors = ["tylerkovacs"]
   end
-
-  Jeweler::GemcutterTasks.new
 rescue LoadError
   puts "Jeweler not available. Install it with: sudo gem install technicalpickles-jeweler -s http://gems.github.com"
 end
@@ -40,4 +38,13 @@ Rcov::RcovTask.new do |t|
   t.verbose = true
 end
 
-task :default => :rcov
+task :noop do
+end
+
+Rake::TestTask.new(:spec => :noop) do |t|
+  t.libs << 'spec'
+  t.test_files = FileList['spec/**/*_spec.rb']
+  t.verbose = true
+end
+
+task :default => :test
