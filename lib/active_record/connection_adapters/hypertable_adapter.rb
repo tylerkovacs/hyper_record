@@ -601,7 +601,7 @@ module ActiveRecord
           @connection.with_mutator(table_name) do |mutator|
             thrift_cells = cells.map{|c|
               cell = thrift_cell_from_native_array(c)
-              cell.flag = Hypertable::ThriftGen::CellFlag::DELETE_CELL
+              cell.key.flag = Hypertable::ThriftGen::CellFlag::DELETE_CELL
               cell
             }
             @connection.set_cells(mutator, thrift_cells)
