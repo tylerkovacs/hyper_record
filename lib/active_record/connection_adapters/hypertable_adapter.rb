@@ -333,7 +333,8 @@ module ActiveRecord
         for cf in column_families
           # Columns are lazily-deleted in Hypertable so still may show up
           # in describe table output.  Ignore.
-          deleted = cf.elements['deleted'].text
+          del = cf.elements['deleted']
+          deleted = del ? del.text : 'false'
           next if deleted == 'true'
 
           column_name = cf.elements['Name'].text
