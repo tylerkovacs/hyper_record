@@ -212,8 +212,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
         query = client.hql_query("SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
       end
     end
@@ -222,16 +222,17 @@ class ThriftClientTest < Test::Unit::TestCase
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         mutator = client.open_mutator('thrift_test', 0, 0)
         cell1 = Hypertable::ThriftGen::Cell.new
-        cell1.row_key = 'k1'
-        cell1.column_family = 'col'
+        cell1.key = Hypertable::ThriftGen::Key.new
+        cell1.key.row = 'k1'
+        cell1.key.column_family = 'col'
         cell1.value = 'v1'
         client.set_cell(mutator, cell1)
         client.close_mutator(mutator, true)
 
         query = client.hql_query("SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
       end
     end
@@ -240,8 +241,9 @@ class ThriftClientTest < Test::Unit::TestCase
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         mutator = client.open_mutator('thrift_test', 0, 500)
         cell1 = Hypertable::ThriftGen::Cell.new
-        cell1.row_key = 'k1'
-        cell1.column_family = 'col'
+        cell1.key = Hypertable::ThriftGen::Key.new
+        cell1.key.row = 'k1'
+        cell1.key.column_family = 'col'
         cell1.value = 'v1'
         client.set_cell(mutator, cell1)
 
@@ -252,8 +254,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
         query = client.hql_query("SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
       end
     end
@@ -276,16 +278,16 @@ class ThriftClientTest < Test::Unit::TestCase
 
         query = client.hql_query("SELECT * FROM thrift_test")
         assert_equal 3, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
 
-        assert_equal 'k2', query.cells[1].row_key
-        assert_equal 'col', query.cells[1].column_family
+        assert_equal 'k2', query.cells[1].key.row
+        assert_equal 'col', query.cells[1].key.column_family
         assert_equal 'v2', query.cells[1].value
 
-        assert_equal 'k3', query.cells[2].row_key
-        assert_equal 'col', query.cells[2].column_family
+        assert_equal 'k3', query.cells[2].key.row
+        assert_equal 'col', query.cells[2].key.column_family
         assert_equal 'v3', query.cells[2].value
       end
     end
@@ -294,18 +296,21 @@ class ThriftClientTest < Test::Unit::TestCase
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         mutator = client.open_mutator('thrift_test', 0, 0)
         cell1 = Hypertable::ThriftGen::Cell.new
-        cell1.row_key = 'k1'
-        cell1.column_family = 'col'
+        cell1.key = Hypertable::ThriftGen::Key.new
+        cell1.key.row = 'k1'
+        cell1.key.column_family = 'col'
         cell1.value = 'v1'
 
         cell2 = Hypertable::ThriftGen::Cell.new
-        cell2.row_key = 'k2'
-        cell2.column_family = 'col'
+        cell2.key = Hypertable::ThriftGen::Key.new
+        cell2.key.row = 'k2'
+        cell2.key.column_family = 'col'
         cell2.value = 'v2'
 
         cell3 = Hypertable::ThriftGen::Cell.new
-        cell3.row_key = 'k3'
-        cell3.column_family = 'col'
+        cell3.key = Hypertable::ThriftGen::Key.new
+        cell3.key.row = 'k3'
+        cell3.key.column_family = 'col'
         cell3.value = 'v3'
 
         client.set_cells(mutator, [cell1, cell2, cell3])
@@ -313,16 +318,16 @@ class ThriftClientTest < Test::Unit::TestCase
 
         query = client.hql_query("SELECT * FROM thrift_test")
         assert_equal 3, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
 
-        assert_equal 'k2', query.cells[1].row_key
-        assert_equal 'col', query.cells[1].column_family
+        assert_equal 'k2', query.cells[1].key.row
+        assert_equal 'col', query.cells[1].key.column_family
         assert_equal 'v2', query.cells[1].value
 
-        assert_equal 'k3', query.cells[2].row_key
-        assert_equal 'col', query.cells[2].column_family
+        assert_equal 'k3', query.cells[2].key.row
+        assert_equal 'col', query.cells[2].key.column_family
         assert_equal 'v3', query.cells[2].value
       end
     end
@@ -343,16 +348,17 @@ class ThriftClientTest < Test::Unit::TestCase
 
         client.with_mutator('thrift_test') do |mutator|
           cell1 = Hypertable::ThriftGen::Cell.new
-          cell1.row_key = 'k1'
-          cell1.column_family = 'col'
+          cell1.key = Hypertable::ThriftGen::Key.new
+          cell1.key.row = 'k1'
+          cell1.key.column_family = 'col'
           cell1.value = 'v1'
           client.set_cells(mutator, [cell1])
         end
 
         query = client.hql_query("SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
       end
     end
@@ -374,8 +380,8 @@ class ThriftClientTest < Test::Unit::TestCase
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         query = client.hql_query("SELECT * FROM thrift_test WHERE CELL = 'k1','col'")
         assert_equal 1, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
       end
     end
@@ -404,8 +410,8 @@ class ThriftClientTest < Test::Unit::TestCase
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         query = client.hql_query("SELECT * FROM thrift_test WHERE ROW = 'k1'")
         assert_equal 1, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
       end
     end
@@ -414,8 +420,8 @@ class ThriftClientTest < Test::Unit::TestCase
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         cells = client.get_row("thrift_test", 'k1')
         assert_equal 1, cells.length
-        assert_equal 'k1', cells[0].row_key
-        assert_equal 'col', cells[0].column_family
+        assert_equal 'k1', cells[0].key.row
+        assert_equal 'col', cells[0].key.column_family
         assert_equal 'v1', cells[0].value
       end
     end
@@ -437,16 +443,16 @@ class ThriftClientTest < Test::Unit::TestCase
       Hypertable.with_thrift_client("localhost", 38080) do |client|
         query = client.hql_query("SELECT * FROM thrift_test")
         assert_equal 3, query.cells.length
-        assert_equal 'k1', query.cells[0].row_key
-        assert_equal 'col', query.cells[0].column_family
+        assert_equal 'k1', query.cells[0].key.row
+        assert_equal 'col', query.cells[0].key.column_family
         assert_equal 'v1', query.cells[0].value
 
-        assert_equal 'k2', query.cells[1].row_key
-        assert_equal 'col', query.cells[1].column_family
+        assert_equal 'k2', query.cells[1].key.row
+        assert_equal 'col', query.cells[1].key.column_family
         assert_equal 'v2', query.cells[1].value
 
-        assert_equal 'k3', query.cells[2].row_key
-        assert_equal 'col', query.cells[2].column_family
+        assert_equal 'k3', query.cells[2].key.row
+        assert_equal 'col', query.cells[2].key.column_family
         assert_equal 'v3', query.cells[2].value
       end
     end
@@ -457,16 +463,16 @@ class ThriftClientTest < Test::Unit::TestCase
         cells = client.get_cells("thrift_test", scan_spec)
 
         assert_equal 3, cells.length
-        assert_equal 'k1', cells[0].row_key
-        assert_equal 'col', cells[0].column_family
+        assert_equal 'k1', cells[0].key.row
+        assert_equal 'col', cells[0].key.column_family
         assert_equal 'v1', cells[0].value
 
-        assert_equal 'k2', cells[1].row_key
-        assert_equal 'col', cells[1].column_family
+        assert_equal 'k2', cells[1].key.row
+        assert_equal 'col', cells[1].key.column_family
         assert_equal 'v2', cells[1].value
 
-        assert_equal 'k3', cells[2].row_key
-        assert_equal 'col', cells[2].column_family
+        assert_equal 'k3', cells[2].key.row
+        assert_equal 'col', cells[2].key.column_family
         assert_equal 'v3', cells[2].value
       end
     end

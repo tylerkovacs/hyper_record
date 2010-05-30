@@ -571,7 +571,7 @@ module ActiveRecord
         cell.key.row = array[0]
         cell.key.column_family = array[1]
         cell.key.column_qualifier = array[2] if !array[2].blank?
-        cell.key.value = array[3] if array[3]
+        cell.value = array[3] if array[3]
         cell.key.timestamp = array[4] if array[4]
         cell
       end
