@@ -509,7 +509,7 @@ module ActiveRecord
       # </Schema>
       def describe_table(table_name)
         retry_on_connection_error {
-          @connection.get_schema(table_name)
+          @connection.get_schema_str(table_name)
         }
       end
 

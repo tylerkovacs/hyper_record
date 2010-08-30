@@ -1,3 +1,7 @@
+0.9.3.4 (not yet released)
+- now compatible with Thrift 0.3.0 and Hypertable 0.9.3.4
+  - note: not backwards compatible with previous Thrift or Hypertable releases
+
 0.9.3.0 (2010/05/30)
 - updated HyperRecord version numbers to match Hypertable release number
 - now compatible with Hypertable version 0.9.3.0

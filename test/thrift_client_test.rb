@@ -496,9 +496,9 @@ class ThriftClientTest < Test::Unit::TestCase
       end
     end
 
-    should "return the table definition using get_schema" do
+    should "return the table definition using get_schema_str" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        results = client.get_schema('thrift_test')
+        results = client.get_schema_str('thrift_test')
         assert results.include?('<Name>col</Name>')
       end
     end
