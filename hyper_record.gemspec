@@ -41,7 +41,7 @@ Gem::Specification.new do |s|
      "lib/hypertable/gen-rb/hql_types.rb",
      "lib/hypertable/thrift_client.rb",
      "lib/hypertable/thrift_transport_monkey_patch.rb",
-     "pkg/hyper_record-0.9.3.gem",
+     "pkg/hyper_record-0.9.4.gem",
      "spec/fixtures/pages.yml",
      "spec/fixtures/qualified_pages.yml",
      "spec/lib/associations_spec.rb",
