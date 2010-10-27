@@ -7,7 +7,7 @@
 
 module Hypertable
   module ThriftGen
-        module CellFlag
+        module KeyFlag
           DELETE_ROW = 0
           DELETE_CF = 1
           DELETE_CELL = 2
@@ -214,12 +214,15 @@ module Hypertable
             COLUMN_QUALIFIER => {:type => ::Thrift::Types::STRING, :name => 'column_qualifier'},
             TIMESTAMP => {:type => ::Thrift::Types::I64, :name => 'timestamp', :optional => true},
             REVISION => {:type => ::Thrift::Types::I64, :name => 'revision', :optional => true},
-            FLAG => {:type => ::Thrift::Types::I16, :name => 'flag', :default => 255}
+            FLAG => {:type => ::Thrift::Types::I32, :name => 'flag', :default =>             255, :enum_class => Hypertable::ThriftGen::KeyFlag}
           }
 
           def struct_fields; FIELDS; end
 
           def validate
+            unless @flag.nil? || Hypertable::ThriftGen::KeyFlag::VALID_VALUES.include?(@flag)
+              raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Invalid value of field flag!')
+            end
           end
 
           ::Thrift::Struct.generate_accessors self
@@ -282,6 +285,35 @@ module Hypertable
           def struct_fields; FIELDS; end
 
           def validate
+          end
+
+          ::Thrift::Struct.generate_accessors self
+        end
+
+        # Defines an individual namespace listing
+        # 
+        # <dl>
+        #   <dt>name</dt>
+        #   <dd>Name of the listing.</dd>
+        # 
+        #   <dt>is_namespace</dt>
+        #   <dd>true if this entry is a namespace.</dd>
+        # </dl>
+        class NamespaceListing
+          include ::Thrift::Struct, ::Thrift::Struct_Union
+          NAME = 1
+          IS_NAMESPACE = 2
+
+          FIELDS = {
+            NAME => {:type => ::Thrift::Types::STRING, :name => 'name'},
+            IS_NAMESPACE => {:type => ::Thrift::Types::BOOL, :name => 'is_namespace'}
+          }
+
+          def struct_fields; FIELDS; end
+
+          def validate
+            raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field name is unset!') unless @name
+            raise ::Thrift::ProtocolException.new(::Thrift::ProtocolException::UNKNOWN, 'Required field is_namespace is unset!') if @is_namespace.nil?
           end
 
           ::Thrift::Struct.generate_accessors self

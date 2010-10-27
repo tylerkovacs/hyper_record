@@ -54,6 +54,7 @@ module ActiveRecord
       config[:host] ||= 'localhost'
       config[:port] ||= 38088
       config[:timeout] ||= 20000
+      config[:namespace] ||= '/'
 
       connection = Hypertable::ThriftClient.new(config[:host], config[:port], 
         config[:timeout])
@@ -79,6 +80,9 @@ module ActiveRecord
         super(connection, logger)
         @config = config
         @hypertable_column_names = {}
+        if connection
+          @namespace = connection.open_namespace(@config[:namespace])
+        end
       end
 
       def raw_thrift_client(&block)
@@ -134,9 +138,11 @@ module ActiveRecord
 
       # Execute an HQL query against Hypertable and return the native 
       # HqlResult object that comes back from the Thrift client API.
-      def execute(hql, name=nil)
-        log(hql, name) {
-          retry_on_connection_error { @connection.hql_query(hql) }
+      def execute(hql, options={})
+        log(hql, options[:name]) {
+          retry_on_connection_error { 
+            @connection.hql_query(@namespace, hql) 
+          }
         }
       end
 
@@ -158,7 +164,8 @@ module ActiveRecord
         #   ["page_1", "url", "", "http://...", "1237331693147619002"]
         # ]
         cells = retry_on_connection_error {
-          @connection.get_cells_as_arrays(options[:table_name], scan_spec)
+          @connection.get_cells_as_arrays(@namespace, options[:table_name], 
+            scan_spec)
         }
 
         # Capture performance metrics
@@ -307,6 +314,7 @@ module ActiveRecord
             @retry_on_failure = false
             @connection.close
             @connection.open
+            @namespace = @connection.open_namespace(@config[:namespace])
             retry
           else
             raise err
@@ -423,7 +431,8 @@ module ActiveRecord
 
       def drop_table(table_name, options = {})
         retry_on_connection_error {
-          @connection.drop_table(table_name, options[:if_exists] || false)
+          @connection.drop_table(@namespace, table_name, 
+            options[:if_exists] || false)
         }
       end
 
@@ -509,7 +518,7 @@ module ActiveRecord
       # </Schema>
       def describe_table(table_name)
         retry_on_connection_error {
-          @connection.get_schema_str(table_name)
+          @connection.get_schema_str(@namespace, table_name)
         }
       end
 
@@ -517,7 +526,7 @@ module ActiveRecord
       # instance.
       def tables(name=nil)
         retry_on_connection_error {
-          @connection.get_tables
+          @connection.get_tables(@namespace)
         }
       end
 
@@ -548,7 +557,8 @@ module ActiveRecord
               mutate_spec.appname = 'hyper_record'
               mutate_spec.flush_interval = 1000
               mutate_spec.flags = 2
-              @connection.put_cells_as_arrays(table_name, mutate_spec, cells)
+              @connection.offer_cells_as_arrays(@namespace, table_name, 
+                mutate_spec, cells)
             else
               @connection.set_cells_as_arrays(mutator, cells)
             end
@@ -598,10 +608,10 @@ module ActiveRecord
         t1 = Time.now
 
         retry_on_connection_error {
-          @connection.with_mutator(table_name) do |mutator|
+          @connection.with_mutator(@namespace, table_name) do |mutator|
             thrift_cells = cells.map{|c|
               cell = thrift_cell_from_native_array(c)
-              cell.key.flag = Hypertable::ThriftGen::CellFlag::DELETE_CELL
+              cell.key.flag = Hypertable::ThriftGen::KeyFlag::DELETE_CELL
               cell
             }
             @connection.set_cells(mutator, thrift_cells)
@@ -618,12 +628,12 @@ module ActiveRecord
           cell = Hypertable::ThriftGen::Cell.new
           cell.key = Hypertable::ThriftGen::Key.new
           cell.key.row = row_key
-          cell.key.flag = Hypertable::ThriftGen::CellFlag::DELETE_ROW
+          cell.key.flag = Hypertable::ThriftGen::KeyFlag::DELETE_ROW
           cell
         end
 
         retry_on_connection_error {
-          @connection.with_mutator(table_name) do |mutator|
+          @connection.with_mutator(@namespace, table_name) do |mutator|
             @connection.set_cells(mutator, cells)
           end
         }
@@ -647,7 +657,7 @@ module ActiveRecord
       # Mutator methods
 
       def open_mutator(table_name, flags=0, flush_interval=0)
-        @connection.open_mutator(table_name, flags, flush_interval)
+        @connection.open_mutator(@namespace, table_name, flags, flush_interval)
       end
 
       # Flush is always called in a mutator's destructor due to recent
@@ -665,7 +675,7 @@ module ActiveRecord
       # Scanner methods
 
       def open_scanner(table_name, scan_spec)
-        @connection.open_scanner(table_name, scan_spec, true)
+        @connection.open_scanner(@namespace, table_name, scan_spec, true)
       end
 
       def close_scanner(scanner)
@@ -673,7 +683,7 @@ module ActiveRecord
       end
 
       def with_scanner(table_name, scan_spec, &block)
-        @connection.with_scanner(table_name, scan_spec, &block)
+        @connection.with_scanner(@namespace, table_name, scan_spec, &block)
       end
 
       # Iterator methods

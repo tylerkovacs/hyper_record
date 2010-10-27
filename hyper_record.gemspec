@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{hyper_record}
-  s.version = "0.9.3"
+  s.version = "0.9.4"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["tylerkovacs"]
-  s.date = %q{2010-05-30}
+  s.date = %q{2010-10-27}
   s.description = %q{See README}
   s.email = %q{tyler.kovacs@gmail.com}
   s.extra_rdoc_files = [
@@ -19,9 +19,9 @@ Gem::Specification.new do |s|
   s.files = [
     ".gitignore",
      "CHANGELOG",
+     "HOW_TO_RUN_TESTS",
      "LICENSE",
      "README",
-     "HOW_TO_RUN_TESTS",
      "Rakefile",
      "VERSION.yml",
      "benchmark/save.rb",
@@ -41,6 +41,7 @@ Gem::Specification.new do |s|
      "lib/hypertable/gen-rb/hql_types.rb",
      "lib/hypertable/thrift_client.rb",
      "lib/hypertable/thrift_transport_monkey_patch.rb",
+     "pkg/hyper_record-0.9.3.gem",
      "spec/fixtures/pages.yml",
      "spec/fixtures/qualified_pages.yml",
      "spec/lib/associations_spec.rb",
@@ -56,9 +57,9 @@ Gem::Specification.new do |s|
   s.rubygems_version = %q{1.3.6}
   s.summary = %q{Fully integrates ActiveRecord with Hypertable.}
   s.test_files = [
-    "spec/lib/hypertable_adapter_spec.rb",
+    "spec/lib/associations_spec.rb",
+     "spec/lib/hypertable_adapter_spec.rb",
      "spec/lib/hyper_record_spec.rb",
-     "spec/lib/associations_spec.rb",
      "spec/spec_helper.rb",
      "test/thrift_client_test.rb",
      "test/test_helper.rb"

@@ -4,9 +4,10 @@ class ThriftClientTest < Test::Unit::TestCase
   context "scanner methods" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        client.hql_query('create table thrift_test ( col1, col2 )')
-        client.hql_query("insert into thrift_test values \
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        client.hql_query(ns, 'create table thrift_test ( col1, col2 )')
+        client.hql_query(ns, "insert into thrift_test values \
           ('2008-11-11 11:11:11', 'k1', 'col1', 'v1c1'), \
           ('2008-11-11 11:11:11', 'k1', 'col2', 'v1c2'), \
           ('2008-11-11 11:11:11', 'k2', 'col1', 'v2c1'), \
@@ -19,8 +20,9 @@ class ThriftClientTest < Test::Unit::TestCase
     context "each cell" do
       should "return cells individually" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          client.with_scanner("thrift_test", scan_spec) do |scanner|
+          client.with_scanner(ns, "thrift_test", scan_spec) do |scanner|
             cell_count = 0
             client.each_cell(scanner) do |cell|
               assert_equal Hypertable::ThriftGen::Cell, cell.class
@@ -35,8 +37,9 @@ class ThriftClientTest < Test::Unit::TestCase
     context "each cell as arrays" do
       should "return cells individually in native array format" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          client.with_scanner("thrift_test", scan_spec) do |scanner|
+          client.with_scanner(ns, "thrift_test", scan_spec) do |scanner|
             cell_count = 0
             client.each_cell_as_arrays(scanner) do |cell|
               assert_equal Array, cell.class
@@ -51,8 +54,9 @@ class ThriftClientTest < Test::Unit::TestCase
     context "each row" do
       should "return rows individually" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          client.with_scanner("thrift_test", scan_spec) do |scanner|
+          client.with_scanner(ns, "thrift_test", scan_spec) do |scanner|
             cell_count = 0
             row_count = 0
             client.each_row(scanner) do |row|
@@ -74,8 +78,9 @@ class ThriftClientTest < Test::Unit::TestCase
     context "each row as arrays" do
       should "return rows individually in native array format" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          client.with_scanner("thrift_test", scan_spec) do |scanner|
+          client.with_scanner(ns, "thrift_test", scan_spec) do |scanner|
             cell_count = 0
             row_count = 0
             client.each_row_as_arrays(scanner) do |row|
@@ -97,8 +102,9 @@ class ThriftClientTest < Test::Unit::TestCase
     context "scan spec" do
       should "return all rows on empty scan spec" do
         Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
           scan_spec = Hypertable::ThriftGen::ScanSpec.new
-          cells = client.get_cells("thrift_test", scan_spec)
+          cells = client.get_cells(ns, "thrift_test", scan_spec)
           assert_equal 6, cells.length
         end
       end
@@ -106,9 +112,10 @@ class ThriftClientTest < Test::Unit::TestCase
       context "limit" do
         should "return just the first rows on empty scan spec with limit of 1" do
           Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
             scan_spec = Hypertable::ThriftGen::ScanSpec.new
             scan_spec.row_limit = 1
-            cells = client.get_cells("thrift_test", scan_spec)
+            cells = client.get_cells(ns, "thrift_test", scan_spec)
             assert_equal 2, cells.length
           end
         end
@@ -117,6 +124,7 @@ class ThriftClientTest < Test::Unit::TestCase
       context "cell interval" do
         should "return matching cells on cell interval" do
           Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
             cell_interval = Hypertable::ThriftGen::CellInterval.new
             cell_interval.start_row = 'k1'
             cell_interval.start_column = 'col2'
@@ -127,7 +135,7 @@ class ThriftClientTest < Test::Unit::TestCase
 
             scan_spec = Hypertable::ThriftGen::ScanSpec.new
             scan_spec.cell_intervals = [cell_interval]
-            cells = client.get_cells("thrift_test", scan_spec)
+            cells = client.get_cells(ns, "thrift_test", scan_spec)
             assert_equal 4, cells.length
           end
         end
@@ -136,6 +144,7 @@ class ThriftClientTest < Test::Unit::TestCase
       context "row interval" do
         should "return matching rows on row interval with start row and start inclusive" do
           Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
             row_interval = Hypertable::ThriftGen::RowInterval.new
             row_interval.start_row = 'k2'
             row_interval.start_inclusive = true
@@ -144,13 +153,14 @@ class ThriftClientTest < Test::Unit::TestCase
 
             scan_spec = Hypertable::ThriftGen::ScanSpec.new
             scan_spec.row_intervals = [row_interval]
-            cells = client.get_cells("thrift_test", scan_spec)
+            cells = client.get_cells(ns, "thrift_test", scan_spec)
             assert_equal 4, cells.length
           end
         end
 
         should "return matching rows on row interval with start row and start exclusive" do
           Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
             row_interval = Hypertable::ThriftGen::RowInterval.new
             row_interval.start_row = 'k2'
             row_interval.start_inclusive = false
@@ -159,13 +169,14 @@ class ThriftClientTest < Test::Unit::TestCase
 
             scan_spec = Hypertable::ThriftGen::ScanSpec.new
             scan_spec.row_intervals = [row_interval]
-            cells = client.get_cells("thrift_test", scan_spec)
+            cells = client.get_cells(ns, "thrift_test", scan_spec)
             assert_equal 2, cells.length
           end
         end
 
         should "return matching rows on row interval with end row and end inclusive" do
           Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
             row_interval = Hypertable::ThriftGen::RowInterval.new
             row_interval.start_row = 'k1'
             row_interval.start_inclusive = true
@@ -174,13 +185,14 @@ class ThriftClientTest < Test::Unit::TestCase
 
             scan_spec = Hypertable::ThriftGen::ScanSpec.new
             scan_spec.row_intervals = [row_interval]
-            cells = client.get_cells("thrift_test", scan_spec)
+            cells = client.get_cells(ns, "thrift_test", scan_spec)
             assert_equal 4, cells.length
           end
         end
 
         should "return matching rows on row interval with end row and end exclusive" do
           Hypertable.with_thrift_client("localhost", 38080) do |client|
+          ns = client.open_namespace("/")
             row_interval = Hypertable::ThriftGen::RowInterval.new
             row_interval.start_row = 'k1'
             row_interval.start_inclusive = true
@@ -189,7 +201,7 @@ class ThriftClientTest < Test::Unit::TestCase
 
             scan_spec = Hypertable::ThriftGen::ScanSpec.new
             scan_spec.row_intervals = [row_interval]
-            cells = client.get_cells("thrift_test", scan_spec)
+            cells = client.get_cells(ns, "thrift_test", scan_spec)
             assert_equal 2, cells.length
           end
         end
@@ -200,17 +212,19 @@ class ThriftClientTest < Test::Unit::TestCase
   context "set cell" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        client.hql_query('create table thrift_test ( col )')
+          ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        client.hql_query(ns, 'create table thrift_test ( col )')
       end
     end
 
     should "insert a cell using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query("insert into thrift_test values \
+          ns = client.open_namespace("/")
+        client.hql_query(ns, "insert into thrift_test values \
           ('2008-11-11 11:11:11', 'k1', 'col', 'v1')");
 
-        query = client.hql_query("SELECT * FROM thrift_test")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -220,7 +234,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "insert a cell using set_cell" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        mutator = client.open_mutator('thrift_test', 0, 0)
+        ns = client.open_namespace("/")
+        mutator = client.open_mutator(ns, 'thrift_test', 0, 0)
         cell1 = Hypertable::ThriftGen::Cell.new
         cell1.key = Hypertable::ThriftGen::Key.new
         cell1.key.row = 'k1'
@@ -229,7 +244,7 @@ class ThriftClientTest < Test::Unit::TestCase
         client.set_cell(mutator, cell1)
         client.close_mutator(mutator, true)
 
-        query = client.hql_query("SELECT * FROM thrift_test")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -239,7 +254,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "work with mutator flush_interval" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        mutator = client.open_mutator('thrift_test', 0, 500)
+        ns = client.open_namespace("/")
+        mutator = client.open_mutator(ns, 'thrift_test', 0, 500)
         cell1 = Hypertable::ThriftGen::Cell.new
         cell1.key = Hypertable::ThriftGen::Key.new
         cell1.key.row = 'k1'
@@ -247,12 +263,12 @@ class ThriftClientTest < Test::Unit::TestCase
         cell1.value = 'v1'
         client.set_cell(mutator, cell1)
 
-        query = client.hql_query("SELECT * FROM thrift_test")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 0, query.cells.length
 
         sleep 1
 
-        query = client.hql_query("SELECT * FROM thrift_test")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -264,19 +280,21 @@ class ThriftClientTest < Test::Unit::TestCase
   context "set cells" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        client.hql_query('create table thrift_test ( col )')
+          ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        client.hql_query(ns, 'create table thrift_test ( col )')
       end
     end
 
     should "insert cells using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query("insert into thrift_test values \
+          ns = client.open_namespace("/")
+        client.hql_query(ns, "insert into thrift_test values \
           ('2008-11-11 11:11:11', 'k1', 'col', 'v1'), \
           ('2008-11-11 11:11:11', 'k2', 'col', 'v2'), \
           ('2008-11-11 11:11:11', 'k3', 'col', 'v3')");
 
-        query = client.hql_query("SELECT * FROM thrift_test")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 3, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -294,7 +312,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "insert cells using set_cells" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        mutator = client.open_mutator('thrift_test', 0, 0)
+        ns = client.open_namespace("/")
+        mutator = client.open_mutator(ns, 'thrift_test', 0, 0)
         cell1 = Hypertable::ThriftGen::Cell.new
         cell1.key = Hypertable::ThriftGen::Key.new
         cell1.key.row = 'k1'
@@ -316,7 +335,7 @@ class ThriftClientTest < Test::Unit::TestCase
         client.set_cells(mutator, [cell1, cell2, cell3])
         client.close_mutator(mutator, true)
 
-        query = client.hql_query("SELECT * FROM thrift_test")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 3, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -336,17 +355,19 @@ class ThriftClientTest < Test::Unit::TestCase
   context "with mutator" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        client.hql_query('create table thrift_test ( col )')
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        client.hql_query(ns, 'create table thrift_test ( col )')
       end
     end
 
     should "yield a mutator object and close after block" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        query = client.hql_query("SELECT * FROM thrift_test")
+        ns = client.open_namespace("/")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 0, query.cells.length
 
-        client.with_mutator('thrift_test') do |mutator|
+        client.with_mutator(ns, 'thrift_test') do |mutator|
           cell1 = Hypertable::ThriftGen::Cell.new
           cell1.key = Hypertable::ThriftGen::Key.new
           cell1.key.row = 'k1'
@@ -355,7 +376,7 @@ class ThriftClientTest < Test::Unit::TestCase
           client.set_cells(mutator, [cell1])
         end
 
-        query = client.hql_query("SELECT * FROM thrift_test")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 1, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -367,9 +388,10 @@ class ThriftClientTest < Test::Unit::TestCase
   context "get cell" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        client.hql_query('create table thrift_test ( col )')
-        client.hql_query("insert into thrift_test values \
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        client.hql_query(ns, 'create table thrift_test ( col )')
+        client.hql_query(ns, "insert into thrift_test values \
           ('2008-11-11 11:11:11', 'k1', 'col', 'v1'), \
           ('2008-11-11 11:11:11', 'k2', 'col', 'v2'), \
           ('2008-11-11 11:11:11', 'k3', 'col', 'v3')");
@@ -378,7 +400,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "return a single cell using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        query = client.hql_query("SELECT * FROM thrift_test WHERE CELL = 'k1','col'")
+        ns = client.open_namespace("/")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test WHERE CELL = 'k1','col'")
         assert_equal 1, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -388,7 +411,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "return a single cell using get_cell" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        value = client.get_cell("thrift_test", 'k1', 'col')
+        ns = client.open_namespace("/")
+        value = client.get_cell(ns, "thrift_test", 'k1', 'col')
         assert_equal 'v1', value
       end
     end
@@ -397,9 +421,10 @@ class ThriftClientTest < Test::Unit::TestCase
   context "get row" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        client.hql_query('create table thrift_test ( col )')
-        client.hql_query("insert into thrift_test values \
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        client.hql_query(ns, 'create table thrift_test ( col )')
+        client.hql_query(ns, "insert into thrift_test values \
           ('2008-11-11 11:11:11', 'k1', 'col', 'v1'), \
           ('2008-11-11 11:11:11', 'k2', 'col', 'v2'), \
           ('2008-11-11 11:11:11', 'k3', 'col', 'v3')");
@@ -408,7 +433,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "return a single row using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        query = client.hql_query("SELECT * FROM thrift_test WHERE ROW = 'k1'")
+        ns = client.open_namespace("/")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test WHERE ROW = 'k1'")
         assert_equal 1, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -418,7 +444,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "return a single row using get_row" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        cells = client.get_row("thrift_test", 'k1')
+        ns = client.open_namespace("/")
+        cells = client.get_row(ns, "thrift_test", 'k1')
         assert_equal 1, cells.length
         assert_equal 'k1', cells[0].key.row
         assert_equal 'col', cells[0].key.column_family
@@ -430,9 +457,10 @@ class ThriftClientTest < Test::Unit::TestCase
   context "get cells" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        client.hql_query('create table thrift_test ( col )')
-        client.hql_query("insert into thrift_test values \
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        client.hql_query(ns, 'create table thrift_test ( col )')
+        client.hql_query(ns, "insert into thrift_test values \
           ('2008-11-11 11:11:11', 'k1', 'col', 'v1'), \
           ('2008-11-11 11:11:11', 'k2', 'col', 'v2'), \
           ('2008-11-11 11:11:11', 'k3', 'col', 'v3')");
@@ -441,7 +469,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "return a list of cells using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        query = client.hql_query("SELECT * FROM thrift_test")
+        ns = client.open_namespace("/")
+        query = client.hql_query(ns, "SELECT * FROM thrift_test")
         assert_equal 3, query.cells.length
         assert_equal 'k1', query.cells[0].key.row
         assert_equal 'col', query.cells[0].key.column_family
@@ -459,8 +488,9 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "return a list of cells using get_cells" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
+        ns = client.open_namespace("/")
         scan_spec = Hypertable::ThriftGen::ScanSpec.new
-        cells = client.get_cells("thrift_test", scan_spec)
+        cells = client.get_cells(ns, "thrift_test", scan_spec)
 
         assert_equal 3, cells.length
         assert_equal 'k1', cells[0].key.row
@@ -481,16 +511,18 @@ class ThriftClientTest < Test::Unit::TestCase
   context "get schema" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        query = client.hql_query(ns, 'show tables')
         assert !query.results.include?('thrift_test'), "table exists after drop"
-        client.hql_query('create table thrift_test ( col )')
+        client.hql_query(ns, 'create table thrift_test ( col )')
       end
     end
 
     should "return the table definition using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        query = client.hql_query('show create table thrift_test')
+        ns = client.open_namespace("/")
+        query = client.hql_query(ns, 'show create table thrift_test')
         assert query.results.first.include?('CREATE TABLE thrift_test')
         assert query.results.first.include?('col')
       end
@@ -498,7 +530,8 @@ class ThriftClientTest < Test::Unit::TestCase
 
     should "return the table definition using get_schema_str" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        results = client.get_schema_str('thrift_test')
+        ns = client.open_namespace("/")
+        results = client.get_schema_str(ns, 'thrift_test')
         assert results.include?('<Name>col</Name>')
       end
     end
@@ -507,23 +540,26 @@ class ThriftClientTest < Test::Unit::TestCase
   context "get tables" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        query = client.hql_query(ns, 'show tables')
         assert !query.results.include?('thrift_test'), "table exists after drop"
-        client.hql_query('create table thrift_test ( col )')
+        client.hql_query(ns, 'create table thrift_test ( col )')
       end
     end
 
     should "return a list of table using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        query = client.hql_query(ns, 'show tables')
         assert query.results.include?('thrift_test'), "table does not exist after create"
       end
     end
 
     should "return a list of table using get_tables" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        results = client.get_tables
+        ns = client.open_namespace("/")
+        results = client.get_tables(ns)
         assert results.include?('thrift_test'), "table does not exist after create"
       end
     end
@@ -532,28 +568,31 @@ class ThriftClientTest < Test::Unit::TestCase
   context "drop table" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        query = client.hql_query(ns, 'show tables')
         assert !query.results.include?('thrift_test'), "table exists after drop"
 
-        client.hql_query('create table thrift_test ( col )')
-        query = client.hql_query('show tables')
+        client.hql_query(ns, 'create table thrift_test ( col )')
+        query = client.hql_query(ns, 'show tables')
         assert query.results.include?('thrift_test'), "table does not exist after create"
       end
     end
 
     should "drop a table if one exists using hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        query = client.hql_query(ns, 'show tables')
         assert !query.results.include?('thrift_test'), "table exists after drop"
       end
     end
 
     should "drop a table if one exists using drop_table" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.drop_table('thrift_test', true)
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        client.drop_table(ns, 'thrift_test', true)
+        query = client.hql_query(ns, 'show tables')
         assert !query.results.include?('thrift_test'), "table exists after drop"
       end
     end
@@ -562,22 +601,25 @@ class ThriftClientTest < Test::Unit::TestCase
   context "create table" do
     setup do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('drop table if exists thrift_test')
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'drop table if exists thrift_test')
+        query = client.hql_query(ns, 'show tables')
         assert !query.results.include?('thrift_test'), "table exists after drop"
       end
     end
 
     should "create a table that matches the supplied schema with hql_query" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
-        client.hql_query('create table thrift_test ( col )')
-        query = client.hql_query('show tables')
+        ns = client.open_namespace("/")
+        client.hql_query(ns, 'create table thrift_test ( col )')
+        query = client.hql_query(ns, 'show tables')
         assert query.results.include?('thrift_test'), "table does not exist after create"
       end
     end
 
     should "create a table that matches the supplied schema with create_table" do
       Hypertable.with_thrift_client("localhost", 38080) do |client|
+        ns = client.open_namespace("/")
         table_schema =<<EOF
 <Schema>
 <AccessGroup name="default">
@@ -587,8 +629,8 @@ class ThriftClientTest < Test::Unit::TestCase
 </AccessGroup>
 </Schema>
 EOF
-        client.create_table('thrift_test', table_schema)
-        query = client.hql_query('show tables')
+        client.create_table(ns, 'thrift_test', table_schema)
+        query = client.hql_query(ns, 'show tables')
         assert query.results.include?('thrift_test'), "table does not exist after create"
       end
     end

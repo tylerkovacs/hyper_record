@@ -4,7 +4,6 @@ $:.push(File.dirname(__FILE__) + '/gen-rb')
 require 'thrift'
 require 'thrift/protocol/binary_protocol_accelerated'
 require 'hql_service'
-require File.dirname(__FILE__) + '/thrift_transport_monkey_patch'
 
 module Hypertable
   class ThriftClient < ThriftGen::HqlService::Client
@@ -27,8 +26,8 @@ module Hypertable
 
     # more convenience methods
 
-    def with_scanner(table, scan_spec)
-      scanner = open_scanner(table, scan_spec, true)
+    def with_scanner(namespace, table, scan_spec, retry_table_not_found = true)
+      scanner = open_scanner(namespace, table, scan_spec, retry_table_not_found)
       begin
         yield scanner
       ensure
@@ -36,12 +35,12 @@ module Hypertable
       end
     end
 
-    def with_mutator(table, flags=0, flush_interval=0)
-      mutator = open_mutator(table, flags, flush_interval);
+    def with_mutator(namespace, table)
+      mutator = open_mutator(namespace, table, 0, 0);
       begin
         yield mutator
       ensure
-        close_mutator(mutator, 0)
+        close_mutator(mutator, 1)
       end
     end
 
