@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{hyper_record}
-  s.version = "0.9.4"
+  s.version = "0.9.5"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["tylerkovacs"]
-  s.date = %q{2010-10-27}
+  s.date = %q{2010-11-01}
   s.description = %q{See README}
   s.email = %q{tyler.kovacs@gmail.com}
   s.extra_rdoc_files = [
@@ -41,7 +41,7 @@ Gem::Specification.new do |s|
      "lib/hypertable/gen-rb/hql_types.rb",
      "lib/hypertable/thrift_client.rb",
      "lib/hypertable/thrift_transport_monkey_patch.rb",
-     "pkg/hyper_record-0.9.4.gem",
+     "pkg/hyper_record-0.9.5.gem",
      "spec/fixtures/pages.yml",
      "spec/fixtures/qualified_pages.yml",
      "spec/lib/associations_spec.rb",

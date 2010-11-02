@@ -1,3 +1,6 @@
+0.9.5 (2010/11/01)
+- reapply patch that fixes "Can't dup NilClass" exception (Jonas Huckestein)
+
 0.9.4.0 (2010/10/27)
 - now compatible with Hypertable 0.9.4.0
   - note: not backwards compatible with previous Hypertable releases due
