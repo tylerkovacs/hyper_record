@@ -28,6 +28,14 @@ module ActiveRecord
     VALUE_OFFSET = 3
     TIMESTAMP_OFFSET = 4
 
+    # Jonas Fix for "Can't dup NilClass" when dup'ing default_scoping
+    # The default value for default_scoping in ActiveRecord::Base is []
+    # Because it is defined in Base.rb with class_inheritable_accessor, 
+    # HyperBase has it's own version that needs to be initialized.
+    # TODO: in the future there may be other HyperRecord::Base class variables 
+    # that are initialized in base.rb. They will cause problems, too
+    self.default_scoping = self.superclass.default_scoping
+
     def initialize(attrs={})
       super(attrs)
       self.ROW = attrs[:ROW] if attrs[:ROW] && attrs[:ROW]
